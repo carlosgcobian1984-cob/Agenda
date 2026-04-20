@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reservar reunión — Carlos Cobián</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--accent:#e8ff47;--accent2:#ff6b35;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
+
+.logo-wrap{text-align:center;margin-bottom:32px;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:4px;color:var(--accent);}
+.logo-sub{font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;width:100%;max-width:480px;padding:28px 24px;}
+.card-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;color:var(--text);margin-bottom:6px;}
+.card-sub{font-size:12px;color:var(--muted);margin-bottom:24px;line-height:1.5;}
+
+/* STEP INDICATOR */
+.steps{display:flex;gap:0;margin-bottom:28px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
+.step{flex:1;padding:8px;text-align:center;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:var(--surface2);transition:all .3s;cursor:default;}
+.step.active{color:var(--bg);background:var(--accent);}
+.step.done{color:var(--accent);background:rgba(232,255,71,.08);}
+
+/* CALENDAR */
+.cal-wrap{margin-bottom:20px;}
+.cal-nav-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.cal-month{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;}
+.cal-nav-btn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);width:30px;height:30px;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+.cal-nav-btn:hover{border-color:var(--accent);color:var(--accent);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{font-size:9px;color:var(--muted);text-align:center;padding:3px 0;font-weight:600;letter-spacing:1px;}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:12px;font-family:'DM Mono',monospace;border-radius:8px;cursor:pointer;transition:all .15s;color:var(--text2);border:1px solid transparent;}
+.cal-day:hover:not(.disabled):not(.past){background:var(--surface3);border-color:var(--border);}
+.cal-day.today{color:var(--accent);font-weight:700;}
+.cal-day.selected{background:var(--accent);color:var(--bg);font-weight:700;border-color:var(--accent);}
+.cal-day.past,.cal-day.disabled{color:var(--border);cursor:not-allowed;}
+.cal-day.oth{color:var(--border);}
+.cal-day.busy{color:var(--muted);position:relative;}
+.cal-day.busy::after{content:'';position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent2);}
+
+/* TIME SLOTS */
+.slots-wrap{margin-bottom:20px;}
+.slots-title{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px;}
+.slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.slot{padding:9px 6px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;color:var(--text2);}
+.slot:hover:not(.taken){border-color:var(--accent);color:var(--text);}
+.slot.selected{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.slot.taken{color:var(--border);cursor:not-allowed;text-decoration:line-through;}
+.slots-empty{font-size:12px;color:var(--muted);text-align:center;padding:20px 0;}
+
+/* DURATION */
+.dur-row{display:flex;gap:7px;margin-bottom:20px;}
+.dur-opt{flex:1;padding:8px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:11px;cursor:pointer;transition:all .2s;color:var(--muted);}
+.dur-opt:hover{border-color:var(--accent);color:var(--text);}
+.dur-opt.selected{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+
+/* FORM */
+.field{margin-bottom:14px;}
+.label{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:5px;display:block;}
+.inp,.ta{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 13px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.inp:focus,.ta:focus{border-color:var(--accent);}
+.inp::placeholder,.ta::placeholder{color:var(--muted);}
+.ta{resize:vertical;min-height:80px;line-height:1.5;}
+
+/* SUMMARY BOX */
+.summary{background:rgba(232,255,71,.05);border:1px solid rgba(232,255,71,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;}
+.summary-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;font-size:13px;}
+.summary-row:last-child{margin-bottom:0;}
+.summary-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
+.summary-val{color:var(--text2);}
+.summary-val strong{color:var(--text);}
+
+/* BUTTONS */
+.btn-row{display:flex;gap:8px;margin-top:6px;}
+.btn-primary{flex:1;background:var(--accent);color:var(--bg);border:none;border-radius:9px;padding:12px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-primary:hover{background:#fff;}
+.btn-primary:disabled{background:var(--border);cursor:not-allowed;color:var(--muted);}
+.btn-secondary{background:var(--surface2);color:var(--muted);border:1px solid var(--border);border-radius:9px;padding:12px 16px;font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;}
+.btn-secondary:hover{color:var(--text);border-color:var(--muted);}
+
+/* SUCCESS */
+.success-wrap{text-align:center;padding:20px 0;}
+.success-icon{font-size:52px;margin-bottom:16px;}
+.success-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--accent);margin-bottom:8px;}
+.success-msg{font-size:13px;color:var(--text2);line-height:1.6;}
+
+/* LOADING */
+.loading{text-align:center;padding:30px;color:var(--muted);font-size:12px;font-family:'DM Mono',monospace;}
+.spinner{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 10px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="logo-wrap">
+  <div class="logo">LEGACY</div>
+  <div class="logo-sub">Carlos Cobián · Sports Marketing</div>
+</div>
+
+<div class="card">
+  <div class="card-title">Reservar reunión</div>
+  <div class="card-sub">Elige el día y hora que mejor te venga. Te confirmaré la reunión en menos de 24h.</div>
+
+  <div class="steps">
+    <div class="step active" id="step1">1 · Fecha</div>
+    <div class="step" id="step2">2 · Hora</div>
+    <div class="step" id="step3">3 · Datos</div>
+  </div>
+
+  <div id="screenDate">
+    <div class="cal-wrap">
+      <div class="cal-nav-row">
+        <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+        <div class="cal-month" id="calMonth"></div>
+        <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-primary" id="btnToTime" onclick="goToTime()" disabled>Elegir hora →</button>
+    </div>
+  </div>
+
+  <div id="screenTime" style="display:none">
+    <div class="slots-wrap">
+      <div class="slots-title" id="slotsTitle">Horas disponibles</div>
+      <div id="slotsGrid"></div>
+    </div>
+    <div class="slots-wrap">
+      <div class="slots-title">Duración</div>
+      <div class="dur-row">
+        <div class="dur-opt selected" data-v="30" onclick="selDur(this)">30 min</div>
+        <div class="dur-opt" data-v="45" onclick="selDur(this)">45 min</div>
+        <div class="dur-opt" data-v="60" onclick="selDur(this)">1 hora</div>
+        <div class="dur-opt" data-v="90" onclick="selDur(this)">1h 30m</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goBack(1)">← Atrás</button>
+      <button class="btn-primary" id="btnToForm" onclick="goToForm()" disabled>Mis datos →</button>
+    </div>
+  </div>
+
+  <div id="screenForm" style="display:none">
+    <div class="summary" id="summaryBox"></div>
+    <div class="field"><label class="label">Tu nombre *</label><input class="inp" id="fName" type="text" placeholder="Nombre y apellido"></div>
+    <div class="field"><label class="label">Email</label><input class="inp" id="fEmail" type="email" placeholder="para enviarte confirmación"></div>
+    <div class="field"><label class="label">Motivo de la reunión *</label><textarea class="ta" id="fReason" placeholder="Cuéntame brevemente de qué quieres hablar..."></textarea></div>
+    <div class="btn-row">
+      <button class="btn-secondary" onclick="goBack(2)">← Atrás</button>
+      <button class="btn-primary" id="btnSend" onclick="submitBooking()">Solicitar reunión</button>
+    </div>
+  </div>
+
+  <div id="screenSuccess" style="display:none">
+    <div class="success-wrap">
+      <div class="success-icon">🎯</div>
+      <div class="success-title">¡Solicitud enviada!</div>
+      <div class="success-msg">Carlos revisará tu solicitud y te confirmará la reunión en menos de 24h.<br><br>
+      <span id="successDetail" style="color:var(--accent);font-family:'DM Mono',monospace;font-size:12px;"></span></div>
+    </div>
+    <div class="btn-row" style="margin-top:24px">
+      <button class="btn-primary" onclick="resetForm()">Nueva solicitud</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://ceandrszwpodniylpsgc.supabase.co';
+const SB_KEY = 'sb_publishable_5e2AAqUBAes3rGp8JTsP5w_pSoIkq4m';
+
+const DAYS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+const DSHT  = ['D','L','M','X','J','V','S'];
+const MONS  = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+
+// Slots disponibles por defecto (horas de trabajo)
+const DEFAULT_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+
+let calMon = new Date();
+let selectedDate = null;
+let selectedTime = null;
+let selectedDur  = 30;
+let takenSlots   = {};   // { 'YYYY-MM-DD': ['09:00','10:00',...] }
+let existingBlocks = []; // blocks from agenda
+
+function p2(n){return String(n).padStart(2,'0');}
+function todayStr(){const d=new Date();return`${d.getFullYear()}-${p2(d.getMonth()+1)}-${p2(d.getDate())}`;}
+function addMins(t,m){const[h,mn]=t.split(':').map(Number);const tot=h*60+mn+m;return`${p2(Math.floor(tot/60))}:${p2(tot%60)}`;}
+function t2m(t){if(!t)return 0;const[h,m]=t.split(':').map(Number);return h*60+m;}
+function fmtDate(ds){const[y,mo,d]=ds.split('-').map(Number);const dt=new Date(y,mo-1,d);return`${DAYS[dt.getDay()]} ${d} de ${MONS[mo-1].toLowerCase()} ${y}`;}
+
+// Load existing blocks + pending bookings to know what's taken
+async function loadTaken() {
+  try {
+    // Get blocks from agenda
+    const r1 = await fetch(`${SB_URL}/rest/v1/agenda?type=eq.blocks&select=data`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const d1 = await r1.json();
+    existingBlocks = d1?.[0]?.data?.blocks || [];
+
+    // Get pending/confirmed bookings
+    const r2 = await fetch(`${SB_URL}/rest/v1/bookings?status=in.(pending,confirmed)&select=date,time_start,time_end`,{headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}});
+    const bookings = await r2.json();
+
+    // Build taken map
+    takenSlots = {};
+    [...existingBlocks, ...bookings.map(b=>({date:b.date,time:b.time_start,timeEnd:b.time_end,category:'meet'}))].forEach(b=>{
+      if(!b.date)return;
+      if(!takenSlots[b.date])takenSlots[b.date]=[];
+      // Mark slots that overlap with this block
+      DEFAULT_SLOTS.forEach(s=>{
+        const sm=t2m(s),em=b.timeEnd?t2m(b.timeEnd):t2m(b.time)+30;
+        if(sm<em&&t2m(b.time)<sm+selectedDur)takenSlots[b.date].push(s);
+      });
+    });
+
+    renderCal();
+  } catch(e) { renderCal(); }
+}
+
+// ── CALENDAR ─────────────────────────────────
+function renderCal() {
+  const y=calMon.getFullYear(),m=calMon.getMonth();
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  const today=todayStr();
+  let sd=first.getDay();sd=sd===0?6:sd-1;
+
+  document.getElementById('calMonth').textContent=`${MONS[m]} ${y}`;
+
+  let h='';
+  ['L','M','X','J','V','S','D'].forEach(d=>h+=`<div class="cal-dow">${d}</div>`);
+  for(let i=0;i<sd;i++){const pd=new Date(y,m,-sd+i+1);h+=`<div class="cal-day oth">${pd.getDate()}</div>`;}
+  for(let d=1;d<=last.getDate();d++){
+    const ds=`${y}-${p2(m+1)}-${p2(d)}`;
+    const dt=new Date(y,m,d);
+    const isWeekend=dt.getDay()===0||dt.getDay()===6;
+    const isPast=ds<today;
+    const isToday=ds===today;
+    const isSel=ds===selectedDate;
+    const isBusy=(takenSlots[ds]||[]).length>=DEFAULT_SLOTS.length;
+    const cls=['cal-day',isPast||isWeekend?'past':'',isToday?'today':'',isSel?'selected':'',isBusy&&!isPast&&!isWeekend?'busy':''].filter(Boolean).join(' ');
+    h+=`<div class="${cls}" onclick="${isPast||isWeekend?'':`pickDate('${ds}')`}">${d}</div>`;
+  }
+  const tot=sd+last.getDate(),rem=tot%7===0?0:7-tot%7;
+  for(let i=1;i<=rem;i++)h+=`<div class="cal-day oth">${i}</div>`;
+  document.getElementById('calGrid').innerHTML=h;
+}
+
+function calNav(n){calMon.setMonth(calMon.getMonth()+n);renderCal();}
+
+function pickDate(ds){
+  selectedDate=ds;selectedTime=null;
+  document.getElementById('btnToTime').disabled=false;
+  renderCal();
+}
+
+// ── TIME SLOTS ────────────────────────────────
+function renderSlots(){
+  const taken=takenSlots[selectedDate]||[];
+  const today=todayStr();
+  const nowMins=selectedDate===today?t2m(`${p2(new Date().getHours())}:${p2(new Date().getMinutes())}`)+30:0;
+
+  document.getElementById('slotsTitle').textContent=`Horas disponibles · ${fmtDate(selectedDate)}`;
+
+  const available=DEFAULT_SLOTS.filter(s=>t2m(s)>nowMins);
+  if(!available.length){document.getElementById('slotsGrid').innerHTML='<div class="slots-empty">Sin huecos disponibles para este día.</div>';return;}
+
+  let h='<div class="slots-grid">';
+  available.forEach(s=>{
+    const isTaken=taken.includes(s);
+    const isSel=s===selectedTime;
+    h+=`<div class="slot${isTaken?' taken':''}${isSel?' selected':''}" onclick="${isTaken?'':`pickSlot('${s}')`}">${s}</div>`;
+  });
+  h+='</div>';
+  document.getElementById('slotsGrid').innerHTML=h;
+}
+
+function pickSlot(t){
+  selectedTime=t;
+  document.getElementById('btnToForm').disabled=false;
+  renderSlots();
+}
+
+function selDur(el){
+  document.querySelectorAll('.dur-opt').forEach(o=>o.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedDur=parseInt(el.dataset.v);
+  loadTaken();
+}
+
+// ── NAVIGATION ────────────────────────────────
+function setStep(n){
+  [1,2,3].forEach(i=>{
+    const el=document.getElementById(`step${i}`);
+    el.className='step'+(i===n?' active':i<n?' done':'');
+  });
+}
+
+function goToTime(){
+  if(!selectedDate)return;
+  document.getElementById('screenDate').style.display='none';
+  document.getElementById('screenTime').style.display='block';
+  setStep(2);renderSlots();
+}
+
+function goToForm(){
+  if(!selectedTime)return;
+  document.getElementById('screenTime').style.display='none';
+  document.getElementById('screenForm').style.display='block';
+  setStep(3);
+  const endTime=addMins(selectedTime,selectedDur);
+  document.getElementById('summaryBox').innerHTML=`
+    <div class="summary-row"><div class="summary-icon">📅</div><div class="summary-val"><strong>${fmtDate(selectedDate)}</strong></div></div>
+    <div class="summary-row"><div class="summary-icon">⏰</div><div class="summary-val"><strong>${selectedTime} – ${endTime}</strong> (${selectedDur} min)</div></div>`;
+}
+
+function goBack(from){
+  if(from===1){document.getElementById('screenTime').style.display='none';document.getElementById('screenDate').style.display='block';setStep(1);}
+  if(from===2){document.getElementById('screenForm').style.display='none';document.getElementById('screenTime').style.display='block';setStep(2);}
+}
+
+// ── SUBMIT ────────────────────────────────────
+async function submitBooking(){
+  const name=document.getElementById('fName').value.trim();
+  const reason=document.getElementById('fReason').value.trim();
+  if(!name||!reason){alert('Por favor rellena tu nombre y el motivo de la reunión.');return;}
+
+  const btn=document.getElementById('btnSend');
+  btn.disabled=true;btn.textContent='Enviando...';
+
+  const endTime=addMins(selectedTime,selectedDur);
+
+  try{
+    const r=await fetch(`${SB_URL}/rest/v1/bookings`,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+      body:JSON.stringify({name,email:document.getElementById('fEmail').value.trim()||null,reason,date:selectedDate,time_start:selectedTime,time_end:endTime,status:'pending'})
+    });
+    if(!r.ok)throw new Error();
+    document.getElementById('screenForm').style.display='none';
+    document.getElementById('screenSuccess').style.display='block';
+    document.getElementById('successDetail').textContent=`${fmtDate(selectedDate)} · ${selectedTime} – ${endTime}`;
+    setStep(3);
+  }catch(e){
+    btn.disabled=false;btn.textContent='Solicitar reunión';
+    alert('Error al enviar. Por favor inténtalo de nuevo.');
+  }
+}
+
+function resetForm(){
+  selectedDate=null;selectedTime=null;selectedDur=30;
+  document.getElementById('screenSuccess').style.display='none';
+  document.getElementById('screenDate').style.display='block';
+  document.getElementById('fName').value='';
+  document.getElementById('fEmail').value='';
+  document.getElementById('fReason').value='';
+  setStep(1);renderCal();
+}
+
+// ── INIT ──────────────────────────────────────
+loadTaken();
+</script>
+</body>
+</html>
