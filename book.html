@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Reservar reunión — Carlos Cobián</title>
+<title>Reservar reunión — BeLegacy</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--accent:#e8ff47;--accent2:#ff6b35;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;}
+:root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--accent:#ff6b1a;--accent2:#ff6b35;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;}
 *{margin:0;padding:0;box-sizing:border-box;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:32px 16px 60px;}
 
@@ -22,7 +22,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .steps{display:flex;gap:0;margin-bottom:28px;border-radius:8px;overflow:hidden;border:1px solid var(--border);}
 .step{flex:1;padding:8px;text-align:center;font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted);background:var(--surface2);transition:all .3s;cursor:default;}
 .step.active{color:var(--bg);background:var(--accent);}
-.step.done{color:var(--accent);background:rgba(232,255,71,.08);}
+.step.done{color:var(--accent);background:rgba(255,107,26,.08);}
 
 /* CALENDAR */
 .cal-wrap{margin-bottom:20px;}
@@ -47,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .slots-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
 .slot{padding:9px 6px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all .2s;color:var(--text2);}
 .slot:hover:not(.taken){border-color:var(--accent);color:var(--text);}
-.slot.selected{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.slot.selected{background:rgba(255,107,26,.12);border-color:var(--accent);color:var(--accent);font-weight:600;}
 .slot.taken{color:var(--border);cursor:not-allowed;text-decoration:line-through;}
 .slots-empty{font-size:12px;color:var(--muted);text-align:center;padding:20px 0;}
 
@@ -55,7 +55,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .dur-row{display:flex;gap:7px;margin-bottom:20px;}
 .dur-opt{flex:1;padding:8px;text-align:center;border-radius:8px;border:1px solid var(--border);background:var(--surface2);font-size:11px;cursor:pointer;transition:all .2s;color:var(--muted);}
 .dur-opt:hover{border-color:var(--accent);color:var(--text);}
-.dur-opt.selected{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);font-weight:600;}
+.dur-opt.selected{background:rgba(255,107,26,.12);border-color:var(--accent);color:var(--accent);font-weight:600;}
 
 /* FORM */
 .field{margin-bottom:14px;}
@@ -66,7 +66,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 .ta{resize:vertical;min-height:80px;line-height:1.5;}
 
 /* SUMMARY BOX */
-.summary{background:rgba(232,255,71,.05);border:1px solid rgba(232,255,71,.2);border-radius:10px;padding:14px 16px;margin-bottom:20px;}
+.summary{background:rgba(255,107,26,.06);border:1px solid rgba(255,107,26,.22);border-radius:10px;padding:14px 16px;margin-bottom:20px;}
 .summary-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:6px;font-size:13px;}
 .summary-row:last-child{margin-bottom:0;}
 .summary-icon{font-size:14px;flex-shrink:0;margin-top:1px;}
@@ -100,7 +100,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
 
 <div class="logo-wrap">
   <div class="logo">LEGACY</div>
-  <div class="logo-sub">Carlos Cobián · Sports Marketing</div>
+  <div class="logo-sub">Sports & Entertainment Agency</div>
 </div>
 
 <div class="card">
@@ -162,7 +162,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
     <div class="success-wrap">
       <div class="success-icon">🎯</div>
       <div class="success-title">¡Solicitud enviada!</div>
-      <div class="success-msg">Carlos revisará tu solicitud y te confirmará la reunión en menos de 24h.<br><br>
+      <div class="success-msg">La solicitud será revisada y recibirás confirmación en menos de 24h.<br><br>
       <span id="successDetail" style="color:var(--accent);font-family:'DM Mono',monospace;font-size:12px;"></span></div>
     </div>
     <div class="btn-row" style="margin-top:24px">
