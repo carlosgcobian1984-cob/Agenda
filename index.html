@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda </title>
+<title>Agenda — Legacy</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -363,11 +363,11 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 
       <!-- Próximas reuniones confirmadas -->
       <div id="mobileNextPanel" style="display:none;border-bottom:1px solid var(--border);">
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px 4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;background:var(--surface);">
           <div style="font-size:9px;color:#4caf50;font-weight:700;letter-spacing:1px;">✅ REUNIONES CONFIRMADAS</div>
-          <div style="display:flex;gap:6px;align-items:center;">
-            <button onclick="clearBookings('rejected')" style="font-size:9px;color:#ff6b6b;background:none;border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
-            <button onclick="clearBookings('confirmed')" style="font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
+          <div style="display:flex;gap:5px;align-items:center;">
+            <button onclick="clearBookings('rejected')" style="font-size:9px;color:#ff6b6b;background:rgba(255,68,68,.08);border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
+            <button onclick="clearBookings('confirmed')" style="font-size:9px;color:#4caf50;background:rgba(76,175,80,.08);border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:3px 8px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
           </div>
         </div>
         <div id="mobileNextList" style="padding:4px 14px 10px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
@@ -822,19 +822,52 @@ function addBlock(){
 function renderTasks(){
   const p=document.getElementById('tasksPanel');
   const cats=['work','sport','personal'],cnames={work:'💼 Trabajo',sport:'⚡ Deporte',personal:'🎯 Personal'};
+  const pending=tasks.filter(t=>!t.done);
+  const done=tasks.filter(t=>t.done);
   let h='';
-  cats.forEach(cat=>{const ct=tasks.filter(t=>t.category===cat);if(!ct.length)return;
-    h+=`<div class="tsec"><div class="tsec-title">${cnames[cat]}</div>`;
-    ct.forEach(t=>{h+=`<div class="titem ${t.done?'done':''}" onclick="toggleT(${t.id})">
-      <div class="tchk">${t.done?'✓':''}</div><div class="tlbl2">${t.text}</div>
-      <span class="tbadge ${cat==='work'?'bw':cat==='sport'?'bs':'bp'}">${cat}</span>
-      <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px" onclick="event.stopPropagation();removeT(${t.id})">✕</div>
-    </div>`;});h+='</div>';});
-  p.innerHTML=h||'<p style="color:var(--muted);font-size:11px;padding:20px;text-align:center">Sin tareas</p>';
+
+  // ── Pendientes agrupadas por categoría
+  if(pending.length){
+    cats.forEach(cat=>{
+      const ct=pending.filter(t=>t.category===cat);
+      if(!ct.length)return;
+      h+=`<div class="tsec"><div class="tsec-title">${cnames[cat]}</div>`;
+      ct.forEach(t=>{h+=`<div class="titem" onclick="toggleT(${t.id})">
+        <div class="tchk"></div><div class="tlbl2">${t.text}</div>
+        <span class="tbadge ${cat==='work'?'bw':cat==='sport'?'bs':'bp'}">${cat}</span>
+        <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px" onclick="event.stopPropagation();removeT(${t.id})">✕</div>
+      </div>`;});
+      h+='</div>';
+    });
+  } else {
+    h+='<p style="color:var(--muted);font-size:11px;padding:12px 0 6px;text-align:center">Sin tareas pendientes 🎯</p>';
+  }
+
+  // ── Realizadas
+  if(done.length){
+    h+=`<div class="tsec" style="margin-top:8px;">
+      <div class="tsec-title" style="display:flex;align-items:center;justify-content:space-between;">
+        <span>✓ REALIZADAS (${done.length})</span>
+        <span onclick="clearDoneTasks()" style="cursor:pointer;color:var(--muted);font-size:8px;font-weight:600;letter-spacing:.5px;padding:1px 6px;border:1px solid var(--border);border-radius:4px;transition:color .2s;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--muted)'">🗑 Borrar</span>
+      </div>`;
+    done.forEach(t=>{
+      const cat=t.category||'work';
+      h+=`<div class="titem done" onclick="toggleT(${t.id})" style="opacity:.6;">
+        <div class="tchk" style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;">✓</div>
+        <div class="tlbl2">${t.text}</div>
+        <span class="tbadge ${cat==='work'?'bw':cat==='sport'?'bs':'bp'}">${cat}</span>
+        <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px" onclick="event.stopPropagation();removeT(${t.id})">✕</div>
+      </div>`;
+    });
+    h+='</div>';
+  }
+
+  p.innerHTML=h;
   updateStats();
 }
 function toggleT(id){const t=tasks.find(x=>x.id===id);if(t){t.done=!t.done;save();renderTasks();}}
 function removeT(id){tasks=tasks.filter(x=>x.id!==id);save();renderTasks();}
+function clearDoneTasks(){tasks=tasks.filter(t=>!t.done);save();renderTasks();showToast('✓ Tareas realizadas eliminadas','ok');}
 function addTask(){
   const text=document.getElementById('taskInput').value.trim();if(!text)return;
   tasks.push({id:tId++,text,category:document.getElementById('taskCat').value,done:false});
