@@ -799,10 +799,12 @@ function renderWeek(){
 }
 
 // ── DRAG & DROP ──────────────────────────────
-function dStart(e,id){dragSrc=id;e.target.closest('.tblock')?.querySelector('.tev')?.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
-function dOver(e){e.preventDefault();e.target.closest('.tev')?.classList.add('drag-over');}
-function dLeave(e){e.target.closest('.tev')?.classList.remove('drag-over');}
+const isMobile = () => window.matchMedia('(max-width:660px)').matches;
+function dStart(e,id){if(isMobile()){e.preventDefault();return;}dragSrc=id;e.target.closest('.tblock')?.querySelector('.tev')?.classList.add('dragging');e.dataTransfer.effectAllowed='move';}
+function dOver(e){if(isMobile())return;e.preventDefault();e.target.closest('.tev')?.classList.add('drag-over');}
+function dLeave(e){if(isMobile())return;e.target.closest('.tev')?.classList.remove('drag-over');}
 function dDrop(e,tid){
+  if(isMobile())return;
   e.preventDefault();e.target.closest('.tev')?.classList.remove('drag-over');
   if(dragSrc===null||dragSrc===tid){dragSrc=null;return;}
   const si=blocks.findIndex(b=>b.id===dragSrc),ti=blocks.findIndex(b=>b.id===tid);
@@ -1063,10 +1065,28 @@ async function clearBookings(status) {
   const label = status === 'confirmed' ? 'confirmadas' : 'rechazadas';
   if(!confirm(`¿Seguro que quieres borrar todas las reuniones ${label}? Esta acción no se puede deshacer.`)) return;
   try {
+    // Get the bookings before deleting to know which blocks to remove
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.${status}&select=name,date,time_start,time_end`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+
+    // Delete from Supabase
     await fetch(`${SB_URL}/rest/v1/bookings?status=eq.${status}`, {
       method: 'DELETE',
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Prefer': 'return=minimal'}
     });
+
+    // Remove matching blocks from calendar
+    if(data.length) {
+      data.forEach(b => {
+        blocks = blocks.filter(bl =>
+          !(bl.date === b.date && bl.time === b.time_start && bl.title === `🤝 ${b.name}`)
+        );
+      });
+      save(); renderView(); renderCal();
+    }
+
     showToast(`🗑 Reuniones ${label} eliminadas`, status==='confirmed'?'ok':'err');
     loadBookings();
     if(document.getElementById('mobileNextPanel')?.style.display !== 'none') loadNextConfirmed();
@@ -1335,10 +1355,26 @@ function swipeEnd(e, id, onDelete) {
 
 async function deleteBooking(id) {
   try {
+    // Get booking data first
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${id}&select=name,date,time_start`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+
     await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${id}`, {
       method: 'DELETE',
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Prefer': 'return=minimal'}
     });
+
+    // Remove matching block from calendar
+    if(data[0]) {
+      const b = data[0];
+      blocks = blocks.filter(bl =>
+        !(bl.date === b.date && bl.time === b.time_start && bl.title === `🤝 ${b.name}`)
+      );
+      save(); renderView(); renderCal();
+    }
+
     loadBookings();
     showToast('🗑 Eliminado', 'err');
   } catch(e) { showToast('Error al eliminar', 'err'); }
