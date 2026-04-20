@@ -150,7 +150,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min
   <div id="screenForm" style="display:none">
     <div class="summary" id="summaryBox"></div>
     <div class="field"><label class="label">Tu nombre *</label><input class="inp" id="fName" type="text" placeholder="Nombre y apellido"></div>
-    <div class="field"><label class="label">Email</label><input class="inp" id="fEmail" type="email" placeholder="para enviarte confirmación"></div>
+    <div class="field"><label class="label">Email <span style="color:var(--accent2)">*</span></label><input class="inp" id="fEmail" type="email" placeholder="tu@email.com" required></div>
     <div class="field"><label class="label">Motivo de la reunión *</label><textarea class="ta" id="fReason" placeholder="Cuéntame brevemente de qué quieres hablar..."></textarea></div>
     <div class="btn-row">
       <button class="btn-secondary" onclick="goBack(2)">← Atrás</button>
@@ -327,8 +327,21 @@ function goBack(from){
 // ── SUBMIT ────────────────────────────────────
 async function submitBooking(){
   const name=document.getElementById('fName').value.trim();
+  const email=document.getElementById('fEmail').value.trim();
   const reason=document.getElementById('fReason').value.trim();
-  if(!name||!reason){alert('Por favor rellena tu nombre y el motivo de la reunión.');return;}
+  if(!name||!email||!reason){
+    if(!name) document.getElementById('fName').focus();
+    else if(!email) document.getElementById('fEmail').focus();
+    else document.getElementById('fReason').focus();
+    alert('Por favor rellena todos los campos obligatorios (*).');
+    return;
+  }
+  // Basic email format check
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    document.getElementById('fEmail').focus();
+    alert('Por favor introduce un email válido.');
+    return;
+  }
 
   const btn=document.getElementById('btnSend');
   btn.disabled=true;btn.textContent='Enviando...';
@@ -339,7 +352,7 @@ async function submitBooking(){
     const r=await fetch(`${SB_URL}/rest/v1/bookings`,{
       method:'POST',
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-      body:JSON.stringify({name,email:document.getElementById('fEmail').value.trim()||null,reason,date:selectedDate,time_start:selectedTime,time_end:endTime,status:'pending'})
+      body:JSON.stringify({name,email,reason,date:selectedDate,time_start:selectedTime,time_end:endTime,status:'pending'})
     });
     if(!r.ok)throw new Error();
     document.getElementById('screenForm').style.display='none';
