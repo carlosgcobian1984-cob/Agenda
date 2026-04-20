@@ -530,10 +530,14 @@ function renderDay(){
   // Nav
   document.getElementById('dayNav').innerHTML=`<div class="day-nav">
     <button class="dn-btn" onclick="chDay(-1)">‹</button>
-    <div><div class="dn-label">${fmtLabel(viewDate)}</div>
-    <div class="dn-sub">${db.length} bloque${db.length!==1?'s':''} ${ov.size?'<span style="color:#ff4444">· ⚠ solapamiento</span>':''}</div></div>
+    <div style="display:flex;align-items:center;gap:7px;">
+      <div><div class="dn-label">${fmtLabel(viewDate)}</div>
+      <div class="dn-sub">${db.length} bloque${db.length!==1?'s':''} ${ov.size?'<span style="color:#ff4444">· ⚠ solapamiento</span>':''}</div></div>
+      <button class="dn-btn" onclick="openDatePicker()" title="Ir a fecha">📅</button>
+    </div>
     <button class="dn-btn" onclick="chDay(1)">›</button>
-  </div>${!isT?`<div class="goto-today" onclick="viewDate=todayStr();renderView();renderCal()">← Volver a hoy</div>`:''}`;
+  </div>${!isT?`<div class="goto-today" onclick="viewDate=todayStr();renderView();renderCal()">← Volver a hoy</div>`:''}
+  <input type="date" id="dateJumper" style="position:absolute;opacity:0;pointer-events:none;width:0;height:0;" onchange="jumpToDate(this.value)">`;
   const tl=document.getElementById('timeline');
   if(!db.length){tl.innerHTML=`<div class="empty-day"><div style="font-size:26px;margin-bottom:7px">📅</div><div style="font-size:11px">Sin bloques para este día</div></div>`;updateStats(db);return;}
   let html='',insNow=false;
@@ -561,6 +565,8 @@ function renderDay(){
   tl.innerHTML=html;updateStats(db);
 }
 function chDay(n){viewDate=addDays(viewDate,n);renderView();renderCal();}
+function openDatePicker(){const el=document.getElementById('dateJumper');if(!el)return;el.value=viewDate;el.showPicker?el.showPicker():el.click();}
+function jumpToDate(ds){if(!ds)return;viewDate=ds;const[y,m]=ds.split('-').map(Number);calMon=new Date(y,m-1,1);renderView();renderCal();}
 
 // ── WEEK VIEW ────────────────────────────────
 function renderWeek(){
@@ -805,3 +811,4 @@ loadRemote();
 </script>
 </body>
 </html>
+
