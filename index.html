@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda — Legacy</title>
+<title>Agenda</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -91,11 +91,20 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .tdot.ev{background:var(--accent2);}
 .tdot.ov{background:#ff4444;box-shadow:0 0 6px #ff4444;}
 .tconn{width:1px;flex:1;background:var(--border);margin-top:2px;}
-.tev{flex:1;padding:6px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);cursor:grab;transition:all .2s;min-height:42px;display:flex;align-items:flex-start;gap:8px;margin-bottom:3px;}
-.tev:active{cursor:grabbing;}
+.tev{flex:1;padding:6px 10px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:all .2s;min-height:42px;display:flex;align-items:flex-start;gap:8px;margin-bottom:3px;}
 .tev:hover{border-color:var(--accent);transform:translateX(2px);}
-.tev.done .etitle{text-decoration:line-through;color:var(--muted);}
-.tev.done .ecat{opacity:.3;}
+.tev.meet-past{border-color:rgba(255,107,26,.4)!important;background:rgba(255,107,26,.06);}
+.tev.meet-done{border-color:rgba(76,175,80,.35)!important;background:rgba(76,175,80,.05);}
+.tev.meet-missed{border-color:rgba(255,68,68,.35)!important;background:rgba(255,68,68,.05);}
+.meet-status-btns{display:flex;gap:5px;margin-top:6px;}
+.msb{flex:1;border-radius:5px;padding:4px 6px;font-size:10px;font-weight:700;cursor:pointer;border:1px solid;font-family:'DM Sans',sans-serif;transition:all .2s;}
+.msb-yes{background:rgba(76,175,80,.12);border-color:rgba(76,175,80,.4);color:#4caf50;}
+.msb-yes:hover{background:rgba(76,175,80,.25);}
+.msb-no{background:rgba(255,68,68,.1);border-color:rgba(255,68,68,.3);color:#ff6b6b;}
+.msb-no:hover{background:rgba(255,68,68,.2);}
+.meet-status-label{font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;margin-left:4px;}
+.msl-done{background:rgba(76,175,80,.15);color:#4caf50;}
+.msl-missed{background:rgba(255,68,68,.12);color:#ff6b6b;}
 .tev.ov-warn{border-color:#ff4444!important;background:rgba(255,68,68,.06);}
 .tev.dragging{opacity:.35;border:2px dashed var(--accent);}
 .tev.drag-over{border-color:var(--accent);background:rgba(255,107,26,.07);}
@@ -443,13 +452,20 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
       <div class="tasks-panel" id="tasksPanel"></div>
       <div class="add-form">
         <div class="arow">
-          <input class="ainp" id="taskInput" placeholder="Nueva tarea..." style="flex:1">
+          <input class="ainp" id="taskInput" placeholder="Nueva tarea..." style="flex:1;min-width:90px">
           <select class="asel" id="taskCat">
             <option value="work">💼 Trabajo</option>
             <option value="sport">⚡ Deporte</option>
             <option value="personal">🎯 Personal</option>
           </select>
           <button class="abtn" onclick="addTask()">Añadir</button>
+        </div>
+        <div class="arow">
+          <input class="ainp" id="taskDate" type="date" style="flex:0 0 118px">
+          <input class="ainp" id="taskStart" type="time" style="flex:0 0 70px">
+          <span style="color:var(--muted);font-size:11px">→</span>
+          <input class="ainp" id="taskEnd" type="time" style="flex:0 0 70px">
+          <span style="font-size:10px;color:var(--muted);align-self:center;">opcional</span>
         </div>
       </div>
     </div>
@@ -498,7 +514,7 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 <!-- EDIT MODAL -->
 <div class="modal-overlay" id="editModal">
   <div class="modal">
-    <div class="mtitle">EDITAR BLOQUE</div>
+    <div class="mtitle">EDITAR REUNIÓN</div>
     <div class="mfield"><label class="mlabel">Nombre</label><input class="minp" id="eTitle" type="text"></div>
     <div class="mfield"><label class="mlabel">Fecha</label><input class="minp" id="eDate" type="date"></div>
     <div class="mfield"><label class="mlabel">Horario</label>
@@ -531,17 +547,37 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   </div>
 </div>
 
-<!-- ADD MODAL (móvil) -->
-<div class="modal-overlay" id="addModal">
-  <div class="modal">
-    <div class="mtitle">NUEVO BLOQUE</div>
-    <div class="mfield"><label class="mlabel">Nombre</label><input class="minp" id="aTitle" type="text" placeholder="Nombre del bloque..."></div>
-    <div class="mfield"><label class="mlabel">Fecha</label><input class="minp" id="aDate" type="date"></div>
-    <div class="mfield"><label class="mlabel">Horario</label>
-      <div class="mtime-row"><input class="minp" id="aStart" type="time"><span>→</span><input class="minp" id="aEnd" type="time"></div>
+<!-- ADD MODAL (móvil) — selector de tipo -->
+<div class="modal-overlay" id="addTypeModal">
+  <div class="modal" style="padding:20px 16px;">
+    <div class="mtitle">¿QUÉ AÑADES?</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;">
+      <button onclick="openAddBlockSimple()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 10px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:26px;margin-bottom:6px;">📅</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;">REUNIÓN</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Reunión, entreno, cita...</div>
+      </button>
+      <button onclick="openAddTaskSimple()" style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:18px 10px;color:var(--text);cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:26px;margin-bottom:6px;">✓</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1.5px;">TAREA</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:2px;">Algo pendiente por hacer</div>
+      </button>
+    </div>
+    <button onclick="closeAddTypeModal()" style="width:100%;margin-top:12px;background:none;border:1px solid var(--border);border-radius:8px;padding:9px;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;">Cancelar</button>
+  </div>
+</div>
+
+<!-- ADD REUNIÓN SIMPLE (móvil) -->
+<div class="modal-overlay" id="addBlockSimpleModal">
+  <div class="modal" style="padding:20px 16px;">
+    <div class="mtitle">NUEVA REUNIÓN</div>
+    <div class="mfield"><label class="mlabel">Nombre *</label><input class="minp" id="absTitle" type="text" placeholder="Nombre de la reunión..."></div>
+    <div class="mfield"><label class="mlabel">Fecha</label><input class="minp" id="absDate" type="date"></div>
+    <div class="mfield"><label class="mlabel">Hora inicio → fin</label>
+      <div class="mtime-row"><input class="minp" id="absStart" type="time"><span>→</span><input class="minp" id="absEnd" type="time"></div>
     </div>
     <div class="mfield"><label class="mlabel">Categoría</label>
-      <select class="msel" id="aCat">
+      <select class="msel" id="absCat">
         <option value="work">💼 Trabajo</option>
         <option value="meet">🤝 Reunión</option>
         <option value="sport">⚡ Deporte</option>
@@ -549,26 +585,38 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         <option value="personal">🎯 Personal</option>
       </select>
     </div>
-    <div class="mfield"><label class="mlabel">Repetición</label>
-      <div class="recur-grid">
-        <div class="ropt sel" data-v="none" onclick="selRecurA(this)">Sin repetir</div>
-        <div class="ropt" data-v="daily" onclick="selRecurA(this)">Cada día</div>
-        <div class="ropt" data-v="weekly" onclick="selRecurA(this)">Cada semana</div>
-        <div class="ropt" data-v="weekdays" onclick="selRecurA(this)">L–V</div>
-        <div class="ropt" data-v="monthly" onclick="selRecurA(this)">Mensual</div>
-      </div>
-    </div>
-    <div class="mfield"><label class="mlabel">Link (Meet, Zoom...)</label><input class="minp" id="aLink" type="url" placeholder="https://..."></div>
-    <div class="mfield"><label class="mlabel">Notas</label><textarea class="mta" id="aNote" placeholder="Contexto, agenda..."></textarea></div>
     <div class="mfooter">
-      <button class="mcancel" onclick="closeAddModal()">Cancelar</button>
-      <button class="msave" onclick="addBlockModal()">Añadir</button>
+      <button class="mcancel" onclick="closeAddBlockSimple()">Cancelar</button>
+      <button class="msave" onclick="saveAddBlockSimple()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD TAREA SIMPLE (móvil) -->
+<div class="modal-overlay" id="addTaskSimpleModal">
+  <div class="modal" style="padding:20px 16px;">
+    <div class="mtitle">NUEVA TAREA</div>
+    <div class="mfield"><label class="mlabel">¿Qué tienes pendiente? *</label><input class="minp" id="atsText" type="text" placeholder="Describe la tarea..."></div>
+    <div class="mfield"><label class="mlabel">Fecha <span style="color:var(--muted);font-weight:400;">(opcional)</span></label><input class="minp" id="atsDate" type="date"></div>
+    <div class="mfield"><label class="mlabel">Hora <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
+      <div class="mtime-row"><input class="minp" id="atsStart" type="time"><span>→</span><input class="minp" id="atsEnd" type="time"></div>
+    </div>
+    <div class="mfield"><label class="mlabel">Categoría</label>
+      <select class="msel" id="atsCat">
+        <option value="work">💼 Trabajo</option>
+        <option value="sport">⚡ Deporte</option>
+        <option value="personal">🎯 Personal</option>
+      </select>
+    </div>
+    <div class="mfooter">
+      <button class="mcancel" onclick="closeAddTaskSimple()">Cancelar</button>
+      <button class="msave" onclick="saveAddTaskSimple()">Añadir</button>
     </div>
   </div>
 </div>
 
 <!-- FAB -->
-<button class="fab" onclick="openAddModal()" title="Nuevo bloque">+</button>
+<button class="fab" onclick="openAddTypeModal()" title="Añadir">+</button>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
@@ -749,16 +797,33 @@ function renderDay(){
   for(let i=0;i<db.length;i++){
     const b=db[i],bm=t2m(b.time),d=dur(b.time,b.timeEnd),isOv=ov.has(b.id);
     if(isT&&!insNow&&bm>nm){html+=`<div class="now-line-bar"><div class="now-lbl">AHORA ${now}</div><div class="now-bar"></div></div>`;insNow=true;}
-    html+=`<div class="tblock" draggable="true" data-id="${b.id}" ondragstart="dStart(event,${b.id})" ondragover="dOver(event)" ondrop="dDrop(event,${b.id})" ondragleave="dLeave(event)">
+
+    // Detect past meetings
+    const isMeet = b.category==='meet';
+    const endMins = b.timeEnd ? t2m(b.timeEnd) : bm+30;
+    const isPastMeet = isMeet && isT && endMins < nm;
+    const isPastDay = isMeet && viewDate < todayStr();
+    const needsConfirm = (isPastMeet || isPastDay) && b.meetStatus === undefined;
+    const meetClass = isMeet ? (b.meetStatus==='done' ? 'meet-done' : b.meetStatus==='missed' ? 'meet-missed' : (isPastMeet||isPastDay) ? 'meet-past' : '') : '';
+
+    html+=`<div class="tblock" draggable="false" data-id="${b.id}">
       <div class="tlabel"><span class="ts">${b.time}</span>${b.timeEnd?`<span class="te">${b.timeEnd}</span>`:''}${d?`<span class="td">${d}</span>`:''}</div>
       <div class="tline"><div class="tdot ${isOv?'ov':'ev'}"></div>${i<db.length-1?'<div class="tconn"></div>':''}</div>
-      <div class="tev ${b.done?'done':''} ${isOv?'ov-warn':''}" onclick="toggleB(${b.id})">
+      <div class="tev ${b.done&&!isMeet?'done':''} ${isOv?'ov-warn':''} ${meetClass}" onclick="${isMeet?'':(`toggleB(${b.id})`)}">
         <div class="ecat cat-${b.category}"></div>
         <div class="ebody">
-          <div class="etitle">${b.title}</div>
+          <div class="etitle" style="display:flex;align-items:center;gap:6px;">${b.title}
+            ${b.meetStatus==='done'?'<span class="meet-status-label msl-done">✓ Realizada</span>':''}
+            ${b.meetStatus==='missed'?'<span class="meet-status-label msl-missed">✕ No realizada</span>':''}
+          </div>
           <div class="emeta"><span>${catLbl(b.category)}</span>${isOv?'<span class="ovbadge">⚠ Solapamiento</span>':''}${b.recur&&b.recur!=='none'?`<span class="rbadge">↻ ${rLbl(b.recur)}</span>`:''}</div>
           ${b.note?`<div class="enote" style="color:var(--text2);opacity:.85;">📝 ${b.note.slice(0,60)}${b.note.length>60?'…':''}</div>`:''}
           ${b.link?`<a class="elink" href="${b.link}" target="_blank" onclick="event.stopPropagation()">🔗 ${b.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
+          ${needsConfirm?`<div class="meet-status-btns">
+            <span style="font-size:10px;color:var(--muted);align-self:center;flex-shrink:0;">¿Se realizó?</span>
+            <button class="msb msb-yes" onclick="event.stopPropagation();setMeetStatus(${b.id},'done')">✓ Sí</button>
+            <button class="msb msb-no" onclick="event.stopPropagation();setMeetStatus(${b.id},'missed')">✕ No</button>
+          </div>`:''}
         </div>
         <div class="eactions">
           <button class="evbtn" onclick="event.stopPropagation();openEdit(${b.id})">✏️</button>
@@ -815,7 +880,19 @@ function dDrop(e,tid){
 }
 
 // ── BLOCK CRUD ───────────────────────────────
-function toggleB(id){const b=blocks.find(x=>x.id===id);if(b){b.done=!b.done;save();renderView();}}
+function toggleB(id){
+  const b=blocks.find(x=>x.id===id);
+  if(!b) return;
+  if(b.category==='meet') return; // reuniones no se tachan al pulsar
+  b.done=!b.done;save();renderView();
+}
+function setMeetStatus(id, status){
+  const b=blocks.find(x=>x.id===id);
+  if(!b) return;
+  b.meetStatus=status;
+  save();renderView();
+  showToast(status==='done'?'✓ Reunión realizada':'✕ Reunión no realizada', status==='done'?'ok':'err');
+}
 function removeB(id){blocks=blocks.filter(x=>x.id!==id);save();renderView();renderCal();}
 function addBlock(){
   const time=document.getElementById('bStart').value,title=document.getElementById('bTitle').value.trim();
@@ -831,13 +908,28 @@ function addBlock(){
 function taskCard(t, isDone) {
   const cat = t.category||'work';
   const bdg = cat==='work'?'bw':cat==='sport'?'bs':'bp';
+  const DAYS=['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  const MONS=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  let dateLine='';
+  if(t.date){
+    const[y,m,d]=t.date.split('-').map(Number);
+    const dt=new Date(y,m-1,d);
+    const isToday=t.date===todayStr();
+    const label=isToday?'Hoy':`${DAYS[dt.getDay()]} ${d} ${MONS[m-1]}`;
+    const timeStr=t.timeStart?` · ${t.timeStart}${t.timeEnd?' – '+t.timeEnd:''}` : '';
+    dateLine=`<div style="font-size:9px;color:${isToday?'var(--accent)':'var(--muted)'};font-family:'DM Mono',monospace;margin-top:2px;">${label}${timeStr}</div>`;
+  }
   return `<div class="swipe-wrap" id="sw-t-${t.id}">
     <div class="swipe-delete-bg">🗑</div>
     <div class="swipe-content" ontouchstart="swipeStart(event,'sw-t-${t.id}')" ontouchmove="swipeMove(event,'sw-t-${t.id}')" ontouchend="swipeEnd(event,'sw-t-${t.id}',()=>removeT(${t.id}))">
       <div class="titem${isDone?' done':''}" onclick="toggleT(${t.id})" style="${isDone?'opacity:.6;':''}">
         <div class="tchk"${isDone?' style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;"':''}>${isDone?'✓':''}</div>
-        <div class="tlbl2">${t.text}</div>
+        <div class="ebody" style="flex:1;min-width:0;">
+          <div class="tlbl2">${t.text}</div>
+          ${dateLine}
+        </div>
         <span class="tbadge ${bdg}">${cat}</span>
+        <div onclick="event.stopPropagation();removeT(${t.id})" style="font-size:13px;color:var(--muted);cursor:pointer;padding:2px 4px;border-radius:4px;transition:color .15s;flex-shrink:0;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--muted)'">✕</div>
       </div>
     </div>
   </div>`;
@@ -880,8 +972,16 @@ function removeT(id){tasks=tasks.filter(x=>x.id!==id);save();renderTasks();}
 function clearDoneTasks(){tasks=tasks.filter(t=>!t.done);save();renderTasks();showToast('✓ Tareas realizadas eliminadas','ok');}
 function addTask(){
   const text=document.getElementById('taskInput').value.trim();if(!text)return;
-  tasks.push({id:tId++,text,category:document.getElementById('taskCat').value,done:false});
-  document.getElementById('taskInput').value='';save();renderTasks();
+  tasks.push({
+    id:tId++, text,
+    category:document.getElementById('taskCat').value,
+    date:document.getElementById('taskDate').value||'',
+    timeStart:document.getElementById('taskStart').value||'',
+    timeEnd:document.getElementById('taskEnd').value||'',
+    done:false
+  });
+  document.getElementById('taskInput').value='';
+  save();renderTasks();
 }
 
 // ── STATS ─────────────────────────────────────
@@ -917,30 +1017,61 @@ function openEdit(id){
 }
 function closeModal(){document.getElementById('editModal').classList.remove('open');editingId=null;}
 
-// ── ADD MODAL (móvil) ─────────────────────────
-function openAddModal(){
-  document.getElementById('aTitle').value='';
-  document.getElementById('aDate').value=viewDate;
-  document.getElementById('aStart').value='09:00';
-  document.getElementById('aEnd').value='';
-  document.getElementById('aCat').value='work';
-  document.getElementById('aLink').value='';
-  document.getElementById('aNote').value='';
-  document.querySelectorAll('#addModal .ropt').forEach(o=>o.classList.toggle('sel',o.dataset.v==='none'));
-  document.getElementById('addModal').classList.add('open');
-  setTimeout(()=>document.getElementById('aTitle').focus(),200);
+// ── ADD MODALES SIMPLES (móvil) ───────────────
+function openAddTypeModal(){document.getElementById('addTypeModal').classList.add('open');}
+function closeAddTypeModal(){document.getElementById('addTypeModal').classList.remove('open');}
+
+function openAddBlockSimple(){
+  closeAddTypeModal();
+  document.getElementById('absTitle').value='';
+  document.getElementById('absDate').value=viewDate;
+  document.getElementById('absStart').value='09:00';
+  document.getElementById('absEnd').value='';
+  document.getElementById('absCat').value='work';
+  document.getElementById('addBlockSimpleModal').classList.add('open');
+  setTimeout(()=>document.getElementById('absTitle').focus(),200);
 }
-function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
-function selRecurA(el){document.querySelectorAll('#addModal .ropt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
-function addBlockModal(){
-  const title=document.getElementById('aTitle').value.trim();
-  const time=document.getElementById('aStart').value;
-  if(!title||!time){document.getElementById('aTitle').focus();return;}
-  const date=document.getElementById('aDate').value||viewDate;
-  blocks.push({id:bId++,date,time,timeEnd:document.getElementById('aEnd').value||'',title,category:document.getElementById('aCat').value,recur:document.querySelector('#addModal .ropt.sel')?.dataset.v||'none',note:document.getElementById('aNote').value.trim(),link:document.getElementById('aLink').value.trim(),done:false});
-  viewDate=date;closeAddModal();save();renderView();renderCal();schedAlarms();
+function closeAddBlockSimple(){document.getElementById('addBlockSimpleModal').classList.remove('open');}
+function saveAddBlockSimple(){
+  const title=document.getElementById('absTitle').value.trim();
+  const time=document.getElementById('absStart').value;
+  if(!title||!time){document.getElementById('absTitle').focus();return;}
+  const date=document.getElementById('absDate').value||viewDate;
+  blocks.push({id:bId++,date,time,timeEnd:document.getElementById('absEnd').value||'',title,category:document.getElementById('absCat').value,recur:'none',note:'',link:'',done:false});
+  viewDate=date;closeAddBlockSimple();save();renderView();renderCal();schedAlarms();
+  showToast('✓ Bloque añadido','ok');
 }
-document.getElementById('addModal').addEventListener('click',e=>{if(e.target===document.getElementById('addModal'))closeAddModal();});
+
+function openAddTaskSimple(){
+  closeAddTypeModal();
+  document.getElementById('atsText').value='';
+  document.getElementById('atsDate').value=todayStr();
+  document.getElementById('atsStart').value='';
+  document.getElementById('atsEnd').value='';
+  document.getElementById('atsCat').value='work';
+  document.getElementById('addTaskSimpleModal').classList.add('open');
+  setTimeout(()=>document.getElementById('atsText').focus(),200);
+}
+function closeAddTaskSimple(){document.getElementById('addTaskSimpleModal').classList.remove('open');}
+function saveAddTaskSimple(){
+  const text=document.getElementById('atsText').value.trim();
+  if(!text){document.getElementById('atsText').focus();return;}
+  tasks.push({
+    id:tId++, text,
+    category:document.getElementById('atsCat').value,
+    date:document.getElementById('atsDate').value||'',
+    timeStart:document.getElementById('atsStart').value||'',
+    timeEnd:document.getElementById('atsEnd').value||'',
+    done:false
+  });
+  closeAddTaskSimple();save();renderTasks();
+  showToast('✓ Tarea añadida','ok');
+}
+
+// Close modals on overlay click
+document.getElementById('addTypeModal').addEventListener('click',e=>{if(e.target===document.getElementById('addTypeModal'))closeAddTypeModal();});
+document.getElementById('addBlockSimpleModal').addEventListener('click',e=>{if(e.target===document.getElementById('addBlockSimpleModal'))closeAddBlockSimple();});
+document.getElementById('addTaskSimpleModal').addEventListener('click',e=>{if(e.target===document.getElementById('addTaskSimpleModal'))closeAddTaskSimple();});
 function saveEdit(){
   if(!editingId)return;const b=blocks.find(x=>x.id===editingId);if(!b)return;
   b.title=document.getElementById('eTitle').value.trim()||b.title;
@@ -1406,6 +1537,7 @@ async function checkNewBookings() {
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
+document.getElementById('taskDate').value=todayStr();
 updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day'){renderView();updateDayStatus();}},60000);
