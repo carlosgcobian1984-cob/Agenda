@@ -349,12 +349,21 @@ async function submitBooking(){
   const endTime=addMins(selectedTime,selectedDur);
 
   try{
+    // 1. Guardar solicitud en Supabase
     const r=await fetch(`${SB_URL}/rest/v1/bookings`,{
       method:'POST',
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
       body:JSON.stringify({name,email,reason,date:selectedDate,time_start:selectedTime,time_end:endTime,status:'pending'})
     });
     if(!r.ok)throw new Error();
+
+    // 2. Enviar email de notificación via Edge Function (sin bloquear)
+    fetch(`${SB_URL}/functions/v1/send-booking-email`,{
+      method:'POST',
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json'},
+      body:JSON.stringify({name,email,reason,date:selectedDate,time_start:selectedTime,time_end:endTime})
+    }).catch(()=>{});
+
     document.getElementById('screenForm').style.display='none';
     document.getElementById('screenSuccess').style.display='block';
     document.getElementById('successDetail').textContent=`${fmtDate(selectedDate)} · ${selectedTime} – ${endTime}`;
