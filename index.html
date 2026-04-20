@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda</title>
+<title>Agenda — Legacy</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -597,10 +597,6 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   <div class="modal" style="padding:20px 16px;">
     <div class="mtitle">NUEVA TAREA</div>
     <div class="mfield"><label class="mlabel">¿Qué tienes pendiente? *</label><input class="minp" id="atsText" type="text" placeholder="Describe la tarea..."></div>
-    <div class="mfield"><label class="mlabel">Fecha <span style="color:var(--muted);font-weight:400;">(opcional)</span></label><input class="minp" id="atsDate" type="date"></div>
-    <div class="mfield"><label class="mlabel">Hora <span style="color:var(--muted);font-weight:400;">(opcional)</span></label>
-      <div class="mtime-row"><input class="minp" id="atsStart" type="time"><span>→</span><input class="minp" id="atsEnd" type="time"></div>
-    </div>
     <div class="mfield"><label class="mlabel">Categoría</label>
       <select class="msel" id="atsCat">
         <option value="work">💼 Trabajo</option>
@@ -610,7 +606,7 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
     </div>
     <div class="mfooter">
       <button class="mcancel" onclick="closeAddTaskSimple()">Cancelar</button>
-      <button class="msave" onclick="saveAddTaskSimple()">Añadir</button>
+      <button class="msave" onclick="saveAddTaskSimple()">Añadir tarea</button>
     </div>
   </div>
 </div>
@@ -1045,9 +1041,6 @@ function saveAddBlockSimple(){
 function openAddTaskSimple(){
   closeAddTypeModal();
   document.getElementById('atsText').value='';
-  document.getElementById('atsDate').value=todayStr();
-  document.getElementById('atsStart').value='';
-  document.getElementById('atsEnd').value='';
   document.getElementById('atsCat').value='work';
   document.getElementById('addTaskSimpleModal').classList.add('open');
   setTimeout(()=>document.getElementById('atsText').focus(),200);
@@ -1059,12 +1052,20 @@ function saveAddTaskSimple(){
   tasks.push({
     id:tId++, text,
     category:document.getElementById('atsCat').value,
-    date:document.getElementById('atsDate').value||'',
-    timeStart:document.getElementById('atsStart').value||'',
-    timeEnd:document.getElementById('atsEnd').value||'',
+    date:'', timeStart:'', timeEnd:'',
     done:false
   });
-  closeAddTaskSimple();save();renderTasks();
+  closeAddTaskSimple();
+  save();
+  renderTasks();
+  // Ir al tab de tareas para que la vea
+  const taskBtn = document.querySelector('.tab-btn:not(.active)');
+  document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-tasks').classList.add('active');
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    if(btn.textContent.includes('Tarea')||btn.textContent.includes('✓')) btn.classList.add('active');
+  });
   showToast('✓ Tarea añadida','ok');
 }
 
