@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda — Legacy</title>
+<title>Agenda</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -154,7 +154,14 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .tasks-panel{padding:12px 14px;overflow-y:auto;flex:1;}
 .tsec{margin-bottom:14px;}
 .tsec-title{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:7px;padding-bottom:4px;border-bottom:1px solid var(--border);}
-.titem{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);margin-bottom:4px;cursor:pointer;transition:all .2s;}
+
+/* Swipe wrapper */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:6px;margin-bottom:4px;}
+.swipe-delete-bg{position:absolute;top:0;right:0;bottom:0;width:80px;background:#ff3d00;display:flex;align-items:center;justify-content:center;color:white;font-size:18px;border-radius:0 6px 6px 0;pointer-events:none;}
+.swipe-content{position:relative;transition:transform .2s ease;will-change:transform;touch-action:pan-y;}
+.swipe-content.swiping{transition:none;}
+
+.titem{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:6px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:border-color .2s;margin-bottom:0;}
 .titem:hover{border-color:var(--muted);}
 .tchk{width:14px;height:14px;border:2px solid var(--muted);border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .2s;font-size:8px;}
 .titem.done .tchk{background:#4caf50;border-color:#4caf50;color:white;}
@@ -819,6 +826,21 @@ function addBlock(){
 }
 
 // ── TASKS ─────────────────────────────────────
+function taskCard(t, isDone) {
+  const cat = t.category||'work';
+  const bdg = cat==='work'?'bw':cat==='sport'?'bs':'bp';
+  return `<div class="swipe-wrap" id="sw-t-${t.id}">
+    <div class="swipe-delete-bg">🗑</div>
+    <div class="swipe-content" ontouchstart="swipeStart(event,'sw-t-${t.id}')" ontouchmove="swipeMove(event,'sw-t-${t.id}')" ontouchend="swipeEnd(event,'sw-t-${t.id}',()=>removeT(${t.id}))">
+      <div class="titem${isDone?' done':''}" onclick="toggleT(${t.id})" style="${isDone?'opacity:.6;':''}">
+        <div class="tchk"${isDone?' style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;"':''}}>${isDone?'✓':''}</div>
+        <div class="tlbl2">${t.text}</div>
+        <span class="tbadge ${bdg}">${cat}</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderTasks(){
   const p=document.getElementById('tasksPanel');
   const cats=['work','sport','personal'],cnames={work:'💼 Trabajo',sport:'⚡ Deporte',personal:'🎯 Personal'};
@@ -826,39 +848,25 @@ function renderTasks(){
   const done=tasks.filter(t=>t.done);
   let h='';
 
-  // ── Pendientes agrupadas por categoría
   if(pending.length){
     cats.forEach(cat=>{
       const ct=pending.filter(t=>t.category===cat);
       if(!ct.length)return;
       h+=`<div class="tsec"><div class="tsec-title">${cnames[cat]}</div>`;
-      ct.forEach(t=>{h+=`<div class="titem" onclick="toggleT(${t.id})">
-        <div class="tchk"></div><div class="tlbl2">${t.text}</div>
-        <span class="tbadge ${cat==='work'?'bw':cat==='sport'?'bs':'bp'}">${cat}</span>
-        <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px" onclick="event.stopPropagation();removeT(${t.id})">✕</div>
-      </div>`;});
+      ct.forEach(t=>{ h+=taskCard(t,false); });
       h+='</div>';
     });
   } else {
     h+='<p style="color:var(--muted);font-size:11px;padding:12px 0 6px;text-align:center">Sin tareas pendientes 🎯</p>';
   }
 
-  // ── Realizadas
   if(done.length){
     h+=`<div class="tsec" style="margin-top:8px;">
       <div class="tsec-title" style="display:flex;align-items:center;justify-content:space-between;">
         <span>✓ REALIZADAS (${done.length})</span>
-        <span onclick="clearDoneTasks()" style="cursor:pointer;color:var(--muted);font-size:8px;font-weight:600;letter-spacing:.5px;padding:1px 6px;border:1px solid var(--border);border-radius:4px;transition:color .2s;" onmouseover="this.style.color='#ff6b6b'" onmouseout="this.style.color='var(--muted)'">🗑 Borrar</span>
+        <span onclick="clearDoneTasks()" style="cursor:pointer;color:var(--muted);font-size:8px;font-weight:600;padding:1px 6px;border:1px solid var(--border);border-radius:4px;">🗑 Borrar</span>
       </div>`;
-    done.forEach(t=>{
-      const cat=t.category||'work';
-      h+=`<div class="titem done" onclick="toggleT(${t.id})" style="opacity:.6;">
-        <div class="tchk" style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;">✓</div>
-        <div class="tlbl2">${t.text}</div>
-        <span class="tbadge ${cat==='work'?'bw':cat==='sport'?'bs':'bp'}">${cat}</span>
-        <div style="font-size:11px;color:var(--muted);cursor:pointer;margin-left:2px" onclick="event.stopPropagation();removeT(${t.id})">✕</div>
-      </div>`;
-    });
+    done.forEach(t=>{ h+=taskCard(t,true); });
     h+='</div>';
   }
 
@@ -1097,7 +1105,8 @@ async function loadBookings() {
       : data.map(b => {
           const statusColor = b.status==='confirmed' ? '#4caf50' : b.status==='rejected' ? '#ff6b6b' : 'var(--accent2)';
           const statusLabel = b.status==='confirmed' ? '✓ Confirmada' : b.status==='rejected' ? '✕ Rechazada' : '⏳ Pendiente';
-          return `<div style="background:var(--surface2);border:1px solid ${b.status==='pending'?'rgba(255,107,53,.3)':b.status==='confirmed'?'rgba(76,175,80,.25)':'rgba(255,68,68,.2)'};border-radius:8px;padding:8px 10px;">
+          const swipeId = `sw-b-${b.id}`;
+          const inner = `<div style="background:var(--surface2);border:1px solid ${b.status==='pending'?'rgba(255,107,53,.3)':b.status==='confirmed'?'rgba(76,175,80,.25)':'rgba(255,68,68,.2)'};border-radius:8px;padding:8px 10px;">
             <div style="flex:1;min-width:0;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
@@ -1111,6 +1120,10 @@ async function loadBookings() {
               <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
               <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
             </div>`:''}
+          </div>`;
+          return `<div class="swipe-wrap" id="${swipeId}" style="border-radius:8px;">
+            <div class="swipe-delete-bg" style="border-radius:0 8px 8px 0;">🗑</div>
+            <div class="swipe-content" ontouchstart="swipeStart(event,'${swipeId}')" ontouchmove="swipeMove(event,'${swipeId}')" ontouchend="swipeEnd(event,'${swipeId}',()=>deleteBooking(${b.id}))">${inner}</div>
           </div>`;
         }).join('');
 
@@ -1282,6 +1295,78 @@ function schedAlarms(){
   });
 }
 
+// ── SWIPE TO DELETE ───────────────────────────
+const swipeState = {};
+const SWIPE_THRESHOLD = 72;
+
+function swipeStart(e, id) {
+  const t = e.touches[0];
+  swipeState[id] = { startX: t.clientX, startY: t.clientY, dx: 0 };
+}
+
+function swipeMove(e, id) {
+  const s = swipeState[id]; if(!s) return;
+  const t = e.touches[0];
+  const dx = t.clientX - s.startX;
+  const dy = t.clientY - s.startY;
+  if(Math.abs(dy) > Math.abs(dx)) return; // vertical scroll
+  s.dx = dx;
+  const el = document.querySelector(`#${id} .swipe-content`);
+  if(!el) return;
+  el.classList.add('swiping');
+  const clamped = Math.min(0, dx);
+  el.style.transform = `translateX(${clamped}px)`;
+  e.preventDefault();
+}
+
+function swipeEnd(e, id, onDelete) {
+  const s = swipeState[id]; if(!s) return;
+  const el = document.querySelector(`#${id} .swipe-content`);
+  if(!el){ delete swipeState[id]; return; }
+  el.classList.remove('swiping');
+  if(s.dx < -SWIPE_THRESHOLD) {
+    el.style.transform = `translateX(-80px)`;
+    setTimeout(()=>{ onDelete(); }, 300);
+  } else {
+    el.style.transform = '';
+  }
+  delete swipeState[id];
+}
+
+async function deleteBooking(id) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${id}`, {
+      method: 'DELETE',
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Prefer': 'return=minimal'}
+    });
+    loadBookings();
+    showToast('🗑 Eliminado', 'err');
+  } catch(e) { showToast('Error al eliminar', 'err'); }
+}
+
+// ── BOOKING PUSH NOTIFICATION ─────────────────
+let lastBookingCount = 0;
+
+async function checkNewBookings() {
+  if(Notification.permission !== 'granted') return;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.pending&select=id,name,date,time_start`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+    if(data.length > lastBookingCount && lastBookingCount >= 0) {
+      const newest = data[data.length - 1];
+      try {
+        new Notification('🤝 Nueva solicitud de reunión', {
+          body: `${newest.name} · ${newest.date} ${newest.time_start}`,
+          icon: '/Agenda/icon.png'
+        });
+      } catch(e) {}
+    }
+    lastBookingCount = data.length;
+  } catch(e) {}
+}
+
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
@@ -1289,11 +1374,12 @@ updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day'){renderView();updateDayStatus();}},60000);
 setInterval(loadBookings,60000);
+setInterval(checkNewBookings,45000); // Check for new booking requests every 45s
 renderCal();renderView();renderTasks();
 updateDayStatus();
 setTimeout(loadBriefing,2000);
 loadRemote();
-setTimeout(loadBookings,1500);
+setTimeout(()=>{ loadBookings(); checkNewBookings(); },1500);
 </script>
 </body>
 </html>
