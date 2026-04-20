@@ -507,7 +507,7 @@ function renderCal(){
   for(let i=1;i<=rem;i++)h+=`<div class="cal-day oth">${i}</div>`;
   document.getElementById('miniCal').innerHTML=h+'</div>';
 }
-function pickDay(ds){viewDate=ds;renderCal();renderView();}
+function pickDay(ds){viewDate=ds;document.getElementById('bDate').value=ds;renderCal();renderView();}
 function calN(d){calMon.setMonth(calMon.getMonth()+d);renderCal();}
 
 // ── VIEW SWITCHER ────────────────────────────
@@ -566,7 +566,7 @@ function renderDay(){
 }
 function chDay(n){viewDate=addDays(viewDate,n);renderView();renderCal();}
 function openDatePicker(){const el=document.getElementById('dateJumper');if(!el)return;el.value=viewDate;el.showPicker?el.showPicker():el.click();}
-function jumpToDate(ds){if(!ds)return;viewDate=ds;const[y,m]=ds.split('-').map(Number);calMon=new Date(y,m-1,1);renderView();renderCal();}
+function jumpToDate(ds){if(!ds)return;viewDate=ds;document.getElementById('bDate').value=ds;const[y,m]=ds.split('-').map(Number);calMon=new Date(y,m-1,1);renderView();renderCal();}
 
 // ── WEEK VIEW ────────────────────────────────
 function renderWeek(){
@@ -811,4 +811,3 @@ loadRemote();
 </script>
 </body>
 </html>
-
