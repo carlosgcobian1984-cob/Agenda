@@ -383,10 +383,55 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 </div>
 
 <script>
-// ── PERSISTENCE ──────────────────────────────
-function save() { localStorage.setItem('lg_v2', JSON.stringify({blocks,tasks,bId,tId})); }
-function load() { try{const s=localStorage.getItem('lg_v2');return s?JSON.parse(s):null;}catch(e){return null;} }
-const _s = load();
+// ── SUPABASE CONFIG ──────────────────────────
+const SB_URL = 'https://ceandrszwpodniylpsgc.supabase.co';
+const SB_KEY = 'sb_publishable_5e2AAqUBAes3rGp8JTsP5w_pSoIkq4m';
+
+async function sbGet(type) {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/agenda?type=eq.${type}&select=data`, {
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}` }
+    });
+    const d = await r.json();
+    return d?.[0]?.data || null;
+  } catch(e) { return null; }
+}
+
+async function sbSet(type, data) {
+  try {
+    await fetch(`${SB_URL}/rest/v1/agenda?type=eq.${type}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ data, updated_at: new Date().toISOString() })
+    });
+  } catch(e) {}
+  // Also keep local fallback
+  try { localStorage.setItem('lg_v2', JSON.stringify({blocks,tasks,bId,tId})); } catch(e) {}
+}
+
+async function save() {
+  await Promise.all([sbSet('blocks', {blocks,bId}), sbSet('tasks', {tasks,tId})]);
+}
+
+async function loadRemote() {
+  showSyncStatus('Sincronizando...');
+  const [bd, td] = await Promise.all([sbGet('blocks'), sbGet('tasks')]);
+  if (bd) { blocks = bd.blocks || []; bId = bd.bId || 1; }
+  if (td) { tasks = td.tasks || []; tId = td.tId || 1; }
+  hideSyncStatus();
+  renderCal(); renderView(); renderTasks(); schedAlarms();
+}
+
+function showSyncStatus(msg) {
+  let el = document.getElementById('syncStatus');
+  if (!el) { el = document.createElement('div'); el.id = 'syncStatus'; el.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--muted);font-family:"DM Mono",monospace;z-index:999;'; document.body.appendChild(el); }
+  el.textContent = msg; el.style.display = 'block';
+}
+function hideSyncStatus() { const el = document.getElementById('syncStatus'); if (el) el.style.display = 'none'; }
+
+// ── PERSISTENCE (local fallback) ─────────────
+function loadLocal() { try{const s=localStorage.getItem('lg_v2');return s?JSON.parse(s):null;}catch(e){return null;} }
+const _s = loadLocal();
 
 // ── STATE ────────────────────────────────────
 let blocks = _s?.blocks || [];
@@ -753,8 +798,10 @@ document.getElementById('bStart').value='09:00';
 updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day')renderView();},60000);
+// Load local first for instant render, then sync from Supabase
 renderCal();renderView();renderTasks();
-setTimeout(loadBriefing,1500);
+setTimeout(loadBriefing,2000);
+loadRemote();
 </script>
 </body>
 </html>
