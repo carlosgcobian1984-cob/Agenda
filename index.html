@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda — Legacy</title>
+<title>Agenda </title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -363,7 +363,14 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 
       <!-- Próximas reuniones confirmadas -->
       <div id="mobileNextPanel" style="display:none;border-bottom:1px solid var(--border);">
-        <div id="mobileNextList" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 14px 4px;">
+          <div style="font-size:9px;color:#4caf50;font-weight:700;letter-spacing:1px;">✅ REUNIONES CONFIRMADAS</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <button onclick="clearBookings('rejected')" style="font-size:9px;color:#ff6b6b;background:none;border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
+            <button onclick="clearBookings('confirmed')" style="font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
+          </div>
+        </div>
+        <div id="mobileNextList" style="padding:4px 14px 10px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
           <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Cargando...</div>
         </div>
       </div>
@@ -451,7 +458,11 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
           <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 10px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">PENDIENTES <span id="bookingsBadge">0</span></button>
           <button id="bTabHist" onclick="switchBookTab('history')" style="padding:3px 10px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">HISTORIAL</button>
         </div>
-        <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻</div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="clearRejectedBtn" onclick="clearBookings('rejected')" style="display:none;font-size:9px;color:#ff6b6b;background:none;border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
+          <button id="clearConfirmedBtn" onclick="clearBookings('confirmed')" style="display:none;font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
+          <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻</div>
+        </div>
       </div>
       <div id="bookingsList" style="padding:0 14px 10px;display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;"></div>
     </div>
@@ -997,9 +1008,30 @@ function switchBookTab(tab) {
   bookTab = tab;
   const pBtn = document.getElementById('bTabPend');
   const hBtn = document.getElementById('bTabHist');
+  const clrR = document.getElementById('clearRejectedBtn');
+  const clrC = document.getElementById('clearConfirmedBtn');
   if(pBtn){ pBtn.style.background = tab==='pending'?'var(--accent2)':'var(--surface2)'; pBtn.style.color = tab==='pending'?'var(--bg)':'var(--muted)'; }
   if(hBtn){ hBtn.style.background = tab==='history'?'var(--accent3)':'var(--surface2)'; hBtn.style.color = tab==='history'?'var(--bg)':'var(--muted)'; }
+  // Show delete buttons only in history tab
+  if(clrR) clrR.style.display = tab==='history' ? 'inline-block' : 'none';
+  if(clrC) clrC.style.display = tab==='history' ? 'inline-block' : 'none';
   loadBookings();
+}
+
+async function clearBookings(status) {
+  const label = status === 'confirmed' ? 'confirmadas' : 'rechazadas';
+  if(!confirm(`¿Seguro que quieres borrar todas las reuniones ${label}? Esta acción no se puede deshacer.`)) return;
+  try {
+    await fetch(`${SB_URL}/rest/v1/bookings?status=eq.${status}`, {
+      method: 'DELETE',
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`, 'Prefer': 'return=minimal'}
+    });
+    showToast(`🗑 Reuniones ${label} eliminadas`, status==='confirmed'?'ok':'err');
+    loadBookings();
+    if(document.getElementById('mobileNextPanel')?.style.display !== 'none') loadNextConfirmed();
+  } catch(e) {
+    showToast('Error al eliminar', 'err');
+  }
 }
 
 async function loadBookings() {
