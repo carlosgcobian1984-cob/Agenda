@@ -221,12 +221,24 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .ropt{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:4px 9px;font-size:10px;color:var(--muted);cursor:pointer;transition:all .2s;}
 .ropt.sel{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);}
 
-::-webkit-scrollbar{width:3px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
-::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+/* FAB */
+.fab{display:none;position:fixed;bottom:22px;right:18px;width:52px;height:52px;border-radius:50%;background:var(--accent);color:var(--bg);border:none;font-size:26px;font-weight:300;cursor:pointer;z-index:90;box-shadow:0 4px 20px rgba(232,255,71,.35);align-items:center;justify-content:center;transition:transform .2s,box-shadow .2s;}
+.fab:hover{transform:scale(1.08);box-shadow:0 6px 26px rgba(232,255,71,.5);}
+.fab:active{transform:scale(.95);}
 
-@media(max-width:660px){main{grid-template-columns:1fr;}.right-panel{display:none;}}
+/* TOAST */
+.toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:7px 16px;font-size:11px;color:var(--text2);font-family:'DM Mono',monospace;z-index:999;opacity:0;transition:opacity .25s,transform .25s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.ok{border-color:rgba(76,175,80,.5);color:#4caf50;}
+.toast.err{border-color:rgba(255,68,68,.4);color:#ff6b6b;}
+.toast.sync{border-color:rgba(232,255,71,.3);color:var(--accent);}
+
+@media(max-width:660px){
+  main{grid-template-columns:1fr;}
+  .right-panel{display:none;}
+  .fab{display:flex;}
+  .add-form{display:none;}
+}
 </style>
 </head>
 <body>
@@ -325,6 +337,16 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 
   <div class="right-panel">
     <div id="miniCal" class="mini-cal"></div>
+
+    <!-- SOLICITUDES PENDIENTES -->
+    <div id="bookingsPanel" style="display:none;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;">
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--accent2);">🤝 SOLICITUDES <span id="bookingsBadge" style="background:var(--accent2);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></div>
+        <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻ actualizar</div>
+      </div>
+      <div id="bookingsList" style="padding:0 14px 10px;display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;"></div>
+    </div>
+
     <div class="ai-hdr">
       <div class="ai-title"><div class="ai-dot"></div>ASISTENTE IA</div>
       <div class="ai-sub">Briefing · Huecos libres · Organización</div>
@@ -382,6 +404,48 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   </div>
 </div>
 
+<!-- ADD MODAL (móvil) -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="mtitle">NUEVO BLOQUE</div>
+    <div class="mfield"><label class="mlabel">Nombre</label><input class="minp" id="aTitle" type="text" placeholder="Nombre del bloque..."></div>
+    <div class="mfield"><label class="mlabel">Fecha</label><input class="minp" id="aDate" type="date"></div>
+    <div class="mfield"><label class="mlabel">Horario</label>
+      <div class="mtime-row"><input class="minp" id="aStart" type="time"><span>→</span><input class="minp" id="aEnd" type="time"></div>
+    </div>
+    <div class="mfield"><label class="mlabel">Categoría</label>
+      <select class="msel" id="aCat">
+        <option value="work">💼 Trabajo</option>
+        <option value="meet">🤝 Reunión</option>
+        <option value="sport">⚡ Deporte</option>
+        <option value="food">🍽 Comida</option>
+        <option value="personal">🎯 Personal</option>
+      </select>
+    </div>
+    <div class="mfield"><label class="mlabel">Repetición</label>
+      <div class="recur-grid">
+        <div class="ropt sel" data-v="none" onclick="selRecurA(this)">Sin repetir</div>
+        <div class="ropt" data-v="daily" onclick="selRecurA(this)">Cada día</div>
+        <div class="ropt" data-v="weekly" onclick="selRecurA(this)">Cada semana</div>
+        <div class="ropt" data-v="weekdays" onclick="selRecurA(this)">L–V</div>
+        <div class="ropt" data-v="monthly" onclick="selRecurA(this)">Mensual</div>
+      </div>
+    </div>
+    <div class="mfield"><label class="mlabel">Link (Meet, Zoom...)</label><input class="minp" id="aLink" type="url" placeholder="https://..."></div>
+    <div class="mfield"><label class="mlabel">Notas</label><textarea class="mta" id="aNote" placeholder="Contexto, agenda..."></textarea></div>
+    <div class="mfooter">
+      <button class="mcancel" onclick="closeAddModal()">Cancelar</button>
+      <button class="msave" onclick="addBlockModal()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openAddModal()" title="Nuevo bloque">+</button>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
 <script>
 // ── SUPABASE CONFIG ──────────────────────────
 const SB_URL = 'https://ceandrszwpodniylpsgc.supabase.co';
@@ -410,24 +474,34 @@ async function sbSet(type, data) {
 }
 
 async function save() {
-  await Promise.all([sbSet('blocks', {blocks,bId}), sbSet('tasks', {tasks,tId})]);
+  showToast('Guardando...','sync');
+  try {
+    await Promise.all([sbSet('blocks', {blocks,bId}), sbSet('tasks', {tasks,tId})]);
+    showToast('✓ Guardado','ok');
+  } catch(e) {
+    showToast('⚠ Error al guardar','err');
+  }
 }
 
 async function loadRemote() {
-  showSyncStatus('Sincronizando...');
+  showToast('Sincronizando...','sync');
   const [bd, td] = await Promise.all([sbGet('blocks'), sbGet('tasks')]);
   if (bd) { blocks = bd.blocks || []; bId = bd.bId || 1; }
   if (td) { tasks = td.tasks || []; tId = td.tId || 1; }
-  hideSyncStatus();
+  showToast('✓ Sincronizado','ok');
   renderCal(); renderView(); renderTasks(); schedAlarms();
 }
 
-function showSyncStatus(msg) {
-  let el = document.getElementById('syncStatus');
-  if (!el) { el = document.createElement('div'); el.id = 'syncStatus'; el.style.cssText='position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--muted);font-family:"DM Mono",monospace;z-index:999;'; document.body.appendChild(el); }
-  el.textContent = msg; el.style.display = 'block';
+let toastTimer = null;
+function showToast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast${type?' '+type:''}`;
+  void el.offsetWidth;
+  el.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
 }
-function hideSyncStatus() { const el = document.getElementById('syncStatus'); if (el) el.style.display = 'none'; }
 
 // ── PERSISTENCE (local fallback) ─────────────
 function loadLocal() { try{const s=localStorage.getItem('lg_v2');return s?JSON.parse(s):null;}catch(e){return null;} }
@@ -675,6 +749,31 @@ function openEdit(id){
   document.getElementById('editModal').classList.add('open');
 }
 function closeModal(){document.getElementById('editModal').classList.remove('open');editingId=null;}
+
+// ── ADD MODAL (móvil) ─────────────────────────
+function openAddModal(){
+  document.getElementById('aTitle').value='';
+  document.getElementById('aDate').value=viewDate;
+  document.getElementById('aStart').value='09:00';
+  document.getElementById('aEnd').value='';
+  document.getElementById('aCat').value='work';
+  document.getElementById('aLink').value='';
+  document.getElementById('aNote').value='';
+  document.querySelectorAll('#addModal .ropt').forEach(o=>o.classList.toggle('sel',o.dataset.v==='none'));
+  document.getElementById('addModal').classList.add('open');
+  setTimeout(()=>document.getElementById('aTitle').focus(),200);
+}
+function closeAddModal(){document.getElementById('addModal').classList.remove('open');}
+function selRecurA(el){document.querySelectorAll('#addModal .ropt').forEach(o=>o.classList.remove('sel'));el.classList.add('sel');}
+function addBlockModal(){
+  const title=document.getElementById('aTitle').value.trim();
+  const time=document.getElementById('aStart').value;
+  if(!title||!time){document.getElementById('aTitle').focus();return;}
+  const date=document.getElementById('aDate').value||viewDate;
+  blocks.push({id:bId++,date,time,timeEnd:document.getElementById('aEnd').value||'',title,category:document.getElementById('aCat').value,recur:document.querySelector('#addModal .ropt.sel')?.dataset.v||'none',note:document.getElementById('aNote').value.trim(),link:document.getElementById('aLink').value.trim(),done:false});
+  viewDate=date;closeAddModal();save();renderView();renderCal();schedAlarms();
+}
+document.getElementById('addModal').addEventListener('click',e=>{if(e.target===document.getElementById('addModal'))closeAddModal();});
 function saveEdit(){
   if(!editingId)return;const b=blocks.find(x=>x.id===editingId);if(!b)return;
   b.title=document.getElementById('eTitle').value.trim()||b.title;
@@ -798,16 +897,74 @@ async function loadBriefing(){
   }catch(e){el.classList.remove('show');}
 }
 
+// ── BOOKINGS ──────────────────────────────────
+async function loadBookings() {
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.pending&select=*&order=date.asc,time_start.asc`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+    const panel = document.getElementById('bookingsPanel');
+    const list  = document.getElementById('bookingsList');
+    const badge = document.getElementById('bookingsBadge');
+
+    if (!data.length) { panel.style.display='none'; return; }
+
+    panel.style.display = 'block';
+    badge.textContent = data.length;
+
+    list.innerHTML = data.map(b => `
+      <div style="background:var(--surface2);border:1px solid rgba(255,107,53,.3);border-radius:8px;padding:8px 10px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
+            ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
+            ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;margin-top:7px;">
+          <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
+          <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {}
+}
+
+async function confirmBooking(id, name, date, timeStart, timeEnd) {
+  // Add to calendar
+  blocks.push({id:bId++, date, time:timeStart, timeEnd, title:`🤝 ${name}`, category:'meet', recur:'none', note:'Reunión solicitada via booking', link:'', done:false});
+  // Update booking status
+  await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${id}`, {
+    method:'PATCH',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body: JSON.stringify({status:'confirmed'})
+  });
+  save(); renderView(); renderCal(); loadBookings();
+  showToast('✓ Reunión confirmada y añadida','ok');
+}
+
+async function rejectBooking(id) {
+  await fetch(`${SB_URL}/rest/v1/bookings?id=eq.${id}`, {
+    method:'PATCH',
+    headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body: JSON.stringify({status:'rejected'})
+  });
+  loadBookings();
+  showToast('Solicitud rechazada','err');
+}
+
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
 updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day')renderView();},60000);
-// Load local first for instant render, then sync from Supabase
+setInterval(loadBookings, 60000); // Check bookings every minute
 renderCal();renderView();renderTasks();
 setTimeout(loadBriefing,2000);
 loadRemote();
+setTimeout(loadBookings, 1500);
 </script>
 </body>
 </html>
