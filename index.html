@@ -221,6 +221,33 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .ropt{background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:4px 9px;font-size:10px;color:var(--muted);cursor:pointer;transition:all .2s;}
 .ropt.sel{background:rgba(232,255,71,.1);border-color:var(--accent);color:var(--accent);}
 
+/* MEETING NOTES */
+.notes-panel{padding:10px 14px;overflow-y:auto;flex:1;}
+.note-card{background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:border-color .2s;}
+.note-card:hover{border-color:var(--muted);}
+.note-card-hdr{display:flex;align-items:center;gap:8px;padding:8px 10px;cursor:pointer;}
+.note-card-hdr .ecat{width:3px;height:28px;border-radius:3px;flex-shrink:0;}
+.note-card-info{flex:1;min-width:0;}
+.note-card-title{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.note-card-meta{font-size:9px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;}
+.note-card-actions{display:flex;gap:3px;opacity:0;transition:opacity .2s;}
+.note-card:hover .note-card-actions{opacity:1;}
+.note-card-body{padding:0 10px;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s;}
+.note-card-body.open{max-height:600px;padding:0 10px 10px;}
+.note-raw{font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap;border-bottom:1px solid var(--border);padding-bottom:8px;margin-bottom:8px;}
+.note-summary{background:rgba(232,255,71,.05);border:1px solid rgba(232,255,71,.15);border-radius:6px;padding:8px 10px;font-size:11px;color:var(--text2);line-height:1.6;}
+.note-summary-title{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:4px;}
+.note-sum-loading{display:flex;gap:4px;align-items:center;padding:4px 0;}
+.note-sum-loading span{font-size:10px;color:var(--muted);}
+.nsec-empty{padding:30px 20px;text-align:center;color:var(--muted);font-size:11px;}
+
+/* NOTE MODAL */
+.nmodal-ta{width:100%;min-height:130px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:9px 11px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.6;resize:vertical;outline:none;transition:border-color .2s;box-sizing:border-box;}
+.nmodal-ta:focus{border-color:var(--accent);}
+.nmodal-ta::placeholder{color:var(--muted);}
+.nmodal-meet-info{background:rgba(52,216,154,.06);border:1px solid rgba(52,216,154,.2);border-radius:6px;padding:7px 10px;margin-bottom:10px;font-size:10px;color:var(--text2);}
+.nmodal-meet-name{font-weight:600;color:var(--text);font-size:11px;margin-bottom:2px;}
+
 ::-webkit-scrollbar{width:3px;}
 ::-webkit-scrollbar-track{background:transparent;}
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
@@ -261,6 +288,7 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
     <div class="panel-tabs">
       <button class="tab-btn active" onclick="switchTab('timeline',this)">⏱ Agenda</button>
       <button class="tab-btn" onclick="switchTab('tasks',this)">✓ Tareas</button>
+      <button class="tab-btn" id="tabNotes" onclick="switchTab('notes',this)">📝 Actas</button>
     </div>
 
     <div class="tab-content active" id="tab-timeline">
@@ -320,6 +348,10 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
           <button class="abtn" onclick="addTask()">Añadir</button>
         </div>
       </div>
+    </div>
+
+    <div class="tab-content" id="tab-notes">
+      <div class="notes-panel" id="notesPanel"></div>
     </div>
   </div>
 
@@ -406,20 +438,21 @@ async function sbSet(type, data) {
     });
   } catch(e) {}
   // Also keep local fallback
-  try { localStorage.setItem('lg_v2', JSON.stringify({blocks,tasks,bId,tId})); } catch(e) {}
+  try { localStorage.setItem('lg_v2', JSON.stringify({blocks,tasks,bId,tId,meetNotes,nId})); } catch(e) {}
 }
 
 async function save() {
-  await Promise.all([sbSet('blocks', {blocks,bId}), sbSet('tasks', {tasks,tId})]);
+  await Promise.all([sbSet('blocks', {blocks,bId}), sbSet('tasks', {tasks,tId}), sbSet('notes', {meetNotes,nId})]);
 }
 
 async function loadRemote() {
   showSyncStatus('Sincronizando...');
-  const [bd, td] = await Promise.all([sbGet('blocks'), sbGet('tasks')]);
+  const [bd, td, nd] = await Promise.all([sbGet('blocks'), sbGet('tasks'), sbGet('notes')]);
   if (bd) { blocks = bd.blocks || []; bId = bd.bId || 1; }
   if (td) { tasks = td.tasks || []; tId = td.tId || 1; }
+  if (nd) { meetNotes = nd.meetNotes || []; nId = nd.nId || 1; }
   hideSyncStatus();
-  renderCal(); renderView(); renderTasks(); schedAlarms();
+  renderCal(); renderView(); renderTasks(); renderNotes(); schedAlarms();
 }
 
 function showSyncStatus(msg) {
@@ -438,6 +471,9 @@ let blocks = _s?.blocks || [];
 let tasks  = _s?.tasks  || [];
 let bId    = _s?.bId    || 1;
 let tId    = _s?.tId    || 1;
+let meetNotes = _s?.meetNotes || [];
+let nId    = _s?.nId    || 1;
+let editingNoteId = null, noteLoading = false;
 let editingId = null, dragSrc = null, aiHist = [], aiLoading = false;
 let curView = 'day', notifsOn = false, alarms = {};
 let calMon = new Date();
@@ -552,6 +588,7 @@ function renderDay(){
           ${b.link?`<a class="elink" href="${b.link}" target="_blank" onclick="event.stopPropagation()">🔗 ${b.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
         </div>
         <div class="eactions">
+          <button class="evbtn" title="Notas de reunión" onclick="event.stopPropagation();openNoteModal(${b.id})">📝</button>
           <button class="evbtn" onclick="event.stopPropagation();openEdit(${b.id})">✏️</button>
           <button class="evbtn" onclick="event.stopPropagation();removeB(${b.id})">✕</button>
         </div>
@@ -651,7 +688,7 @@ function switchTab(tab,btn){
   document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');btn.classList.add('active');
-  if(tab==='tasks')renderTasks();if(tab==='timeline')renderView();
+  if(tab==='tasks')renderTasks();if(tab==='timeline')renderView();if(tab==='notes')renderNotes();
 }
 
 // ── EDIT MODAL ────────────────────────────────
@@ -792,6 +829,162 @@ async function loadBriefing(){
   }catch(e){el.classList.remove('show');}
 }
 
+// ── MEETING NOTES ─────────────────────────────
+function openNoteModal(blockId) {
+  const b = blocks.find(x => x.id === blockId);
+  if (!b) return;
+  editingNoteId = blockId;
+  document.getElementById('nModalTitle').textContent = b.title;
+  document.getElementById('nModalMeta').textContent = `${b.date||todayStr()} · ${b.time}${b.timeEnd?' – '+b.timeEnd:''} · ${catLbl(b.category)}`;
+  const existing = meetNotes.find(n => n.blockId === blockId);
+  document.getElementById('nModalText').value = existing?.raw || '';
+  const sumBox = document.getElementById('nModalSummaryBox');
+  const sumTxt = document.getElementById('nModalSummaryTxt');
+  if (existing?.summary) {
+    sumTxt.textContent = existing.summary;
+    sumBox.style.display = 'block';
+  } else {
+    sumBox.style.display = 'none';
+    sumTxt.textContent = '';
+  }
+  document.getElementById('noteModal').classList.add('open');
+  setTimeout(() => document.getElementById('nModalText').focus(), 100);
+}
+
+function closeNoteModal() {
+  document.getElementById('noteModal').classList.remove('open');
+  editingNoteId = null;
+}
+
+function saveNote() {
+  if (!editingNoteId) return;
+  const raw = document.getElementById('nModalText').value.trim();
+  const summary = document.getElementById('nModalSummaryTxt').textContent.trim();
+  const existing = meetNotes.find(n => n.blockId === editingNoteId);
+  if (existing) {
+    existing.raw = raw;
+    if (summary) existing.summary = summary;
+    existing.updatedAt = new Date().toISOString();
+  } else {
+    const b = blocks.find(x => x.id === editingNoteId);
+    meetNotes.push({ id: nId++, blockId: editingNoteId, blockTitle: b?.title || '', blockDate: b?.date || todayStr(), blockTime: b?.time || '', raw, summary, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() });
+  }
+  save(); renderNotes();
+  // badge en tab
+  const notesTab = document.getElementById('tabNotes');
+  if (notesTab) notesTab.textContent = `📝 Actas (${meetNotes.filter(n=>n.raw).length})`;
+  closeNoteModal();
+}
+
+async function generateNoteSummary() {
+  const raw = document.getElementById('nModalText').value.trim();
+  if (!raw) { document.getElementById('nModalText').focus(); return; }
+  if (noteLoading) return;
+  const btn = document.getElementById('nSumBtn');
+  noteLoading = true; btn.disabled = true; btn.textContent = '⏳ Generando...';
+  const b = blocks.find(x => x.id === editingNoteId);
+  const sumBox = document.getElementById('nModalSummaryBox');
+  const sumTxt = document.getElementById('nModalSummaryTxt');
+  sumBox.style.display = 'block'; sumTxt.textContent = 'Analizando notas...';
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        system: `Eres el asistente de Carlos Cobián, profesional de sports marketing en Madrid (agencia BeLegacy). Resumes reuniones de forma ejecutiva y accionable.`,
+        messages: [{ role: 'user', content: `Reunión: "${b?.title||'—'}" · ${b?.date||''} ${b?.time||''}\n\nNotas brutas:\n${raw}\n\nHaz un resumen ejecutivo con: 1) Puntos tratados (2-3 bullets) 2) Decisiones tomadas 3) Próximos pasos con responsable si se menciona. Sé muy conciso, estilo telegrama.` }]
+      })
+    });
+    const data = await res.json();
+    sumTxt.textContent = data.content?.[0]?.text || '—';
+  } catch(e) { sumTxt.textContent = '⚠️ Error generando resumen.'; }
+  noteLoading = false; btn.disabled = false; btn.textContent = '✦ Resumir con IA';
+}
+
+function renderNotes() {
+  const p = document.getElementById('notesPanel');
+  if (!p) return;
+  if (!meetNotes.length) {
+    p.innerHTML = `<div class="nsec-empty"><div style="font-size:24px;margin-bottom:8px">📝</div><div>Sin actas todavía</div><div style="font-size:10px;margin-top:6px;color:var(--border2)">Pulsa el botón 📝 en cualquier bloque del timeline</div></div>`;
+    return;
+  }
+  const sorted = [...meetNotes].sort((a,b) => (b.updatedAt||'').localeCompare(a.updatedAt||''));
+  const grouped = {};
+  sorted.forEach(n => { const d = n.blockDate||''; if (!grouped[d]) grouped[d] = []; grouped[d].push(n); });
+  let html = '';
+  Object.keys(grouped).sort((a,b)=>b.localeCompare(a)).forEach(date => {
+    const [y,mo,d] = date.split('-').map(Number);
+    const dt = new Date(y, mo-1, d);
+    const label = date === todayStr() ? 'HOY' : `${DSHT[dt.getDay()]} ${d} ${MSHT[mo-1]} ${y}`;
+    html += `<div style="font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;margin:10px 0 5px;padding-bottom:3px;border-bottom:1px solid var(--border)">${label}</div>`;
+    grouped[date].forEach(n => {
+      const catCls = blocks.find(b=>b.id===n.blockId)?.category||'meet';
+      html += `<div class="note-card" id="nc-${n.id}">
+        <div class="note-card-hdr" onclick="toggleNoteCard(${n.id})">
+          <div class="ecat cat-${catCls}"></div>
+          <div class="note-card-info">
+            <div class="note-card-title">${n.blockTitle}</div>
+            <div class="note-card-meta">${n.blockTime} · ${n.raw?n.raw.substring(0,45)+'…':'sin texto'}</div>
+          </div>
+          <div class="note-card-actions">
+            <button class="evbtn" onclick="event.stopPropagation();openNoteModal(${n.blockId})" title="Editar">✏️</button>
+            <button class="evbtn" onclick="event.stopPropagation();deleteNote(${n.id})" title="Eliminar">✕</button>
+          </div>
+          <span style="font-size:10px;color:var(--muted);margin-left:4px">›</span>
+        </div>
+        <div class="note-card-body" id="nb-${n.id}">
+          ${n.raw ? `<div class="note-raw">${n.raw.replace(/</g,'&lt;')}</div>` : ''}
+          ${n.summary ? `<div class="note-summary"><div class="note-summary-title">✦ Resumen IA</div><div style="font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap">${n.summary.replace(/</g,'&lt;')}</div></div>` : ''}
+          ${!n.summary ? `<button class="abtn" style="margin-top:6px;background:var(--surface3);color:var(--accent);border:1px solid var(--accent);font-size:10px;padding:4px 10px;" onclick="quickSumNote(${n.id})">✦ Generar resumen IA</button>` : ''}
+        </div>
+      </div>`;
+    });
+  });
+  p.innerHTML = html;
+  updateNotesTabBadge();
+}
+
+function toggleNoteCard(id) {
+  const body = document.getElementById(`nb-${id}`);
+  if (body) body.classList.toggle('open');
+}
+
+function deleteNote(id) {
+  meetNotes = meetNotes.filter(n => n.id !== id);
+  save(); renderNotes();
+}
+
+async function quickSumNote(noteId) {
+  const n = meetNotes.find(x => x.id === noteId);
+  if (!n || !n.raw) return;
+  const b = blocks.find(x => x.id === n.blockId);
+  const body = document.getElementById(`nb-${noteId}`);
+  const btn = body?.querySelector('button');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando...'; }
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 400,
+        system: `Eres el asistente de Carlos Cobián, sports marketing Madrid (BeLegacy). Resumes reuniones de forma ejecutiva y accionable.`,
+        messages: [{ role: 'user', content: `Reunión: "${b?.title||n.blockTitle}" · ${n.blockDate} ${n.blockTime}\n\nNotas:\n${n.raw}\n\nResumen ejecutivo con: 1) Puntos tratados 2) Decisiones 3) Próximos pasos. Muy conciso.` }]
+      })
+    });
+    const data = await res.json();
+    n.summary = data.content?.[0]?.text || '—';
+    n.updatedAt = new Date().toISOString();
+    save(); renderNotes();
+  } catch(e) { if (btn) { btn.disabled = false; btn.textContent = '✦ Generar resumen IA'; } }
+}
+
+function updateNotesTabBadge() {
+  const t = document.getElementById('tabNotes');
+  const count = meetNotes.filter(n => n.raw).length;
+  if (t) t.textContent = count > 0 ? `📝 Actas (${count})` : '📝 Actas';
+}
+
+document.getElementById('noteModal').addEventListener('click', e => { if (e.target === document.getElementById('noteModal')) closeNoteModal(); });
+
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
@@ -799,9 +992,35 @@ updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day')renderView();},60000);
 // Load local first for instant render, then sync from Supabase
-renderCal();renderView();renderTasks();
+renderCal();renderView();renderTasks();renderNotes();updateNotesTabBadge();
 setTimeout(loadBriefing,2000);
 loadRemote();
 </script>
+<!-- NOTE MODAL -->
+<div class="modal-overlay" id="noteModal">
+  <div class="modal" style="width:420px;">
+    <div class="mtitle">NOTAS DE REUNIÓN</div>
+    <div id="nModalMeetInfo" class="nmodal-meet-info">
+      <div class="nmodal-meet-name" id="nModalTitle">—</div>
+      <div id="nModalMeta" style="font-size:9px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:2px;">—</div>
+    </div>
+    <div class="mfield">
+      <label class="mlabel">Notas de la reunión</label>
+      <textarea class="nmodal-ta" id="nModalText" placeholder="Escribe aquí lo que se ha tratado: puntos discutidos, decisiones, próximos pasos, responsables..."></textarea>
+    </div>
+    <div id="nModalSummaryBox" style="display:none;margin-top:6px;">
+      <div class="note-summary">
+        <div class="note-summary-title">✦ Resumen IA</div>
+        <div id="nModalSummaryTxt" style="font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap;"></div>
+      </div>
+    </div>
+    <div class="mfooter" style="flex-wrap:wrap;gap:6px;">
+      <button class="mcancel" onclick="closeNoteModal()">Cancelar</button>
+      <button class="abtn" id="nSumBtn" onclick="generateNoteSummary()" style="flex:1;background:var(--surface2);color:var(--accent);border:1px solid var(--accent);">✦ Resumir con IA</button>
+      <button class="msave" onclick="saveNote()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
