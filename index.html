@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Agenda</title>
+<title>Agenda — Legacy</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 :root{--bg:#0a0a0c;--surface:#111114;--surface2:#18181d;--surface3:#1e1e25;--border:#2a2a32;--border2:#363640;--accent:#ff6b1a;--accent2:#ff3d00;--accent3:#5b9cf6;--text:#f0f0f0;--text2:#b0b0bc;--muted:#666672;--cat-work:#5b9cf6;--cat-sport:#ff6b1a;--cat-food:#f6a35b;--cat-personal:#b05bf6;--cat-meet:#34d89a;}
@@ -835,7 +835,7 @@ function taskCard(t, isDone) {
     <div class="swipe-delete-bg">🗑</div>
     <div class="swipe-content" ontouchstart="swipeStart(event,'sw-t-${t.id}')" ontouchmove="swipeMove(event,'sw-t-${t.id}')" ontouchend="swipeEnd(event,'sw-t-${t.id}',()=>removeT(${t.id}))">
       <div class="titem${isDone?' done':''}" onclick="toggleT(${t.id})" style="${isDone?'opacity:.6;':''}">
-        <div class="tchk"${isDone?' style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;"':''}}>${isDone?'✓':''}</div>
+        <div class="tchk"${isDone?' style="background:#4caf50;border-color:#4caf50;color:white;font-size:8px;"':''}>${isDone?'✓':''}</div>
         <div class="tlbl2">${t.text}</div>
         <span class="tbadge ${bdg}">${cat}</span>
       </div>
