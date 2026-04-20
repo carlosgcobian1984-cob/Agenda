@@ -333,8 +333,16 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         <button id="bookToggleBtn" onclick="toggleMobileBookings()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
           <span>🤝</span><span>REUNIONES</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
         </button>
+        <!-- HOY -->
+        <button onclick="goToday()" title="Ir a hoy" style="padding:9px 10px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;transition:color .2s;" id="todayBtn">HOY</button>
         <!-- Sync -->
-        <button onclick="syncNow()" title="Sincronizar" style="padding:9px 14px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;transition:color .2s;" id="syncBtn">↻</button>
+        <button onclick="syncNow()" title="Sincronizar" style="padding:9px 13px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;transition:color .2s;" id="syncBtn">↻</button>
+      </div>
+
+      <!-- Estado del día -->
+      <div id="dayStatusBar" style="padding:5px 14px;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+        <span id="dayStatusText">—</span>
+        <span id="dayStatusDate" style="color:var(--accent);font-weight:600;font-size:10px;"></span>
       </div>
 
       <!-- Calendario desplegable -->
@@ -425,11 +433,14 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   <div class="right-panel">
     <div id="miniCal" class="mini-cal"></div>
 
-    <!-- SOLICITUDES PENDIENTES -->
+    <!-- SOLICITUDES PENDIENTES + HISTORIAL -->
     <div id="bookingsPanel" style="display:none;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;">
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--accent2);">🤝 SOLICITUDES <span id="bookingsBadge" style="background:var(--accent2);color:var(--bg);border-radius:10px;padding:1px 6px;font-size:10px;margin-left:4px;">0</span></div>
-        <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻ actualizar</div>
+        <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
+          <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 10px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">PENDIENTES <span id="bookingsBadge">0</span></button>
+          <button id="bTabHist" onclick="switchBookTab('history')" style="padding:3px 10px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">HISTORIAL</button>
+        </div>
+        <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻</div>
       </div>
       <div id="bookingsList" style="padding:0 14px 10px;display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto;"></div>
     </div>
@@ -717,7 +728,7 @@ function renderDay(){
         <div class="ebody">
           <div class="etitle">${b.title}</div>
           <div class="emeta"><span>${catLbl(b.category)}</span>${isOv?'<span class="ovbadge">⚠ Solapamiento</span>':''}${b.recur&&b.recur!=='none'?`<span class="rbadge">↻ ${rLbl(b.recur)}</span>`:''}</div>
-          ${b.note?`<div class="enote">📝 ${b.note}</div>`:''}
+          ${b.note?`<div class="enote" style="color:var(--text2);opacity:.85;">📝 ${b.note.slice(0,60)}${b.note.length>60?'…':''}</div>`:''}
           ${b.link?`<a class="elink" href="${b.link}" target="_blank" onclick="event.stopPropagation()">🔗 ${b.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
         </div>
         <div class="eactions">
@@ -727,7 +738,7 @@ function renderDay(){
       </div></div>`;
   }
   if(isT&&!insNow&&db.length)html+=`<div class="now-line-bar"><div class="now-lbl">AHORA ${now}</div><div class="now-bar"></div></div>`;
-  tl.innerHTML=html;updateStats(db);
+  tl.innerHTML=html;updateStats(db);updateDayStatus();
 }
 function chDay(n){viewDate=addDays(viewDate,n);renderView();renderCal();}
 function openDatePicker(){const el=document.getElementById('dateJumper');if(!el)return;el.value=viewDate;try{if(el.showPicker)el.showPicker();else el.click();}catch(e){const v=prompt('Fecha (AAAA-MM-DD):',viewDate);if(v&&/^\d{4}-\d{2}-\d{2}$/.test(v))jumpToDate(v);}}
@@ -882,25 +893,6 @@ document.getElementById('editModal').addEventListener('click',e=>{if(e.target===
 // ── ADD FORM EXTRA ─────────────────────────────
 function toggleExtra(){document.getElementById('addExtra').classList.toggle('open');}
 
-// ── NOTIFICATIONS ─────────────────────────────
-async function toggleNotifs(){
-  if(!('Notification' in window)){alert('Notificaciones no soportadas.');return;}
-  if(Notification.permission==='denied'){alert('Activa las notificaciones en el navegador.');return;}
-  if(Notification.permission!=='granted'){const p=await Notification.requestPermission();if(p!=='granted')return;}
-  notifsOn=!notifsOn;
-  document.getElementById('notifBtn').classList.toggle('notif-on',notifsOn);
-  if(notifsOn)schedAlarms();else{Object.values(alarms).forEach(clearTimeout);alarms={};}
-}
-function schedAlarms(){
-  if(!notifsOn)return;
-  Object.values(alarms).forEach(clearTimeout);alarms={};
-  const now=new Date(),t=todayStr();
-  blocksForDate(t).forEach(b=>{
-    const[h,m]=b.time.split(':').map(Number);const ev=new Date();ev.setHours(h,m,0,0);
-    const al=new Date(ev.getTime()-10*60*1000);const diff=al-now;
-    if(diff>0)alarms[b.id]=setTimeout(()=>{new Notification(`⏰ En 10 min: ${b.title}`,{body:`${b.time}${b.timeEnd?' – '+b.timeEnd:''} · ${catLbl(b.category)}`});},diff);
-  });
-}
 
 // ── CLOCK ─────────────────────────────────────
 function updateClock(){
@@ -989,9 +981,21 @@ async function loadBriefing(){
 }
 
 // ── BOOKINGS ──────────────────────────────────
+let bookTab = 'pending';
+function switchBookTab(tab) {
+  bookTab = tab;
+  const pBtn = document.getElementById('bTabPend');
+  const hBtn = document.getElementById('bTabHist');
+  if(pBtn){ pBtn.style.background = tab==='pending'?'var(--accent2)':'var(--surface2)'; pBtn.style.color = tab==='pending'?'var(--bg)':'var(--muted)'; }
+  if(hBtn){ hBtn.style.background = tab==='history'?'var(--accent3)':'var(--surface2)'; hBtn.style.color = tab==='history'?'var(--bg)':'var(--muted)'; }
+  loadBookings();
+}
+
 async function loadBookings() {
   try {
-    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.pending&select=*&order=date.asc,time_start.asc`, {
+    const isPending = bookTab === 'pending';
+    const filter = isPending ? 'status=eq.pending' : 'status=in.(confirmed,rejected)';
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?${filter}&select=*&order=date.desc,time_start.desc&limit=20`, {
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
     });
     const data = await r.json();
@@ -1002,34 +1006,40 @@ async function loadBookings() {
     const badgeM = document.getElementById('bookBadgeMob');
     const bookBtn= document.getElementById('bookToggleBtn');
 
-    if (!data.length) {
-      if(panel) panel.style.display='none';
-      if(badgeM){ badgeM.style.display='none'; }
-      if(bookBtn) bookBtn.style.color='';
-      if(listM) listM.innerHTML='<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>';
-      return;
+    // Always show panel
+    if(panel) panel.style.display = 'block';
+
+    // Update pending badge
+    if(isPending) {
+      if(badge) badge.textContent = data.length;
+      if(badgeM){ badgeM.style.display = data.length ? 'inline' : 'none'; badgeM.textContent = data.length; }
+      if(bookBtn) bookBtn.style.color = data.length ? 'var(--accent2)' : '';
     }
 
-    const cardsHtml = data.map(b => `
-      <div style="background:var(--surface2);border:1px solid rgba(255,107,53,.3);border-radius:8px;padding:8px 10px;">
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
-          ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
-          ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
-        </div>
-        <div style="display:flex;gap:5px;margin-top:7px;">
-          <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
-          <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
-        </div>
-      </div>`).join('');
+    const cardsHtml = !data.length
+      ? `<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">${isPending ? 'Sin solicitudes pendientes' : 'Sin historial'}</div>`
+      : data.map(b => {
+          const statusColor = b.status==='confirmed' ? '#4caf50' : b.status==='rejected' ? '#ff6b6b' : 'var(--accent2)';
+          const statusLabel = b.status==='confirmed' ? '✓ Confirmada' : b.status==='rejected' ? '✕ Rechazada' : '⏳ Pendiente';
+          return `<div style="background:var(--surface2);border:1px solid ${b.status==='pending'?'rgba(255,107,53,.3)':b.status==='confirmed'?'rgba(76,175,80,.25)':'rgba(255,68,68,.2)'};border-radius:8px;padding:8px 10px;">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
+                ${!isPending?`<span style="font-size:8px;color:${statusColor};font-weight:700;">${statusLabel}</span>`:''}
+              </div>
+              <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
+              ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
+              ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
+            </div>
+            ${isPending?`<div style="display:flex;gap:5px;margin-top:7px;">
+              <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
+              <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
+            </div>`:''}
+          </div>`;
+        }).join('');
 
-    // Desktop panel
-    if(panel){ panel.style.display='block'; badge.textContent=data.length; list.innerHTML=cardsHtml; }
-    // Mobile badge + list
-    if(badgeM){ badgeM.style.display='inline'; badgeM.textContent=data.length; }
-    if(bookBtn) bookBtn.style.color='var(--accent2)';
-    if(listM) listM.innerHTML=cardsHtml;
+    if(list) list.innerHTML = cardsHtml;
+    if(listM && isPending) listM.innerHTML = cardsHtml;
   } catch(e) {}
 }
 
@@ -1073,6 +1083,25 @@ function toggleMobileBookings() {
   document.getElementById('bookToggleBtn').style.color = bookOpen ? 'var(--accent)' : (document.getElementById('bookBadgeMob').style.display!=='none'?'var(--accent2)':'');
 }
 
+function goToday() {
+  viewDate = todayStr();
+  calMon = new Date();
+  renderCal(); renderView();
+  const btn = document.getElementById('todayBtn');
+  if(btn){ btn.style.color='var(--accent)'; setTimeout(()=>btn.style.color='',800); }
+}
+
+function updateDayStatus() {
+  const el = document.getElementById('dayStatusText');
+  const elD = document.getElementById('dayStatusDate');
+  if(!el) return;
+  const db = blocksForDate(viewDate);
+  const done = db.filter(b=>b.done).length;
+  const tPend = tasks.filter(t=>!t.done).length;
+  el.textContent = `${done}/${db.length} bloques · ${tPend} tarea${tPend!==1?'s':''} pendiente${tPend!==1?'s':''}`;
+  if(elD) elD.textContent = viewDate === todayStr() ? 'HOY' : fmtLabel(viewDate).split(' · ')[0];
+}
+
 async function syncNow() {
   const btn = document.getElementById('syncBtn');
   btn.style.color = 'var(--accent)';
@@ -1083,17 +1112,50 @@ async function syncNow() {
   btn.style.color = '';
 }
 
+// ── NOTIFICATIONS (fix móvil) ──────────────────
+async function toggleNotifs(){
+  if(!('Notification' in window)){alert('Notificaciones no soportadas en este navegador.');return;}
+  if(Notification.permission==='denied'){alert('Las notificaciones están bloqueadas. Actívalas en los ajustes del navegador/sistema.');return;}
+  if(Notification.permission!=='granted'){
+    const p=await Notification.requestPermission();
+    if(p!=='granted'){alert('Permiso de notificaciones denegado.');return;}
+  }
+  notifsOn=!notifsOn;
+  document.getElementById('notifBtn').classList.toggle('notif-on',notifsOn);
+  if(notifsOn){
+    // Test notification to confirm it works
+    new Notification('✅ Agenda Legacy',{body:'Notificaciones activadas. Te avisaré 10 min antes de cada bloque.'});
+    schedAlarms();
+  } else {
+    Object.values(alarms).forEach(clearTimeout);alarms={};
+  }
+}
+function schedAlarms(){
+  if(!notifsOn)return;
+  Object.values(alarms).forEach(clearTimeout);alarms={};
+  const now=new Date(),t=todayStr();
+  blocksForDate(t).forEach(b=>{
+    const[h,m]=b.time.split(':').map(Number);
+    const ev=new Date();ev.setHours(h,m,0,0);
+    const al=new Date(ev.getTime()-10*60*1000);const diff=al-now;
+    if(diff>0)alarms[b.id]=setTimeout(()=>{
+      try{ new Notification(`⏰ En 10 min: ${b.title}`,{body:`${b.time}${b.timeEnd?' – '+b.timeEnd:''} · ${catLbl(b.category)}`,icon:'/Agenda/icon.png'}); }catch(e){}
+    },diff);
+  });
+}
+
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
 updateClock();
 setInterval(updateClock,30000);
-setInterval(()=>{if(curView==='day')renderView();},60000);
-setInterval(loadBookings, 60000);
+setInterval(()=>{if(curView==='day'){renderView();updateDayStatus();}},60000);
+setInterval(loadBookings,60000);
 renderCal();renderView();renderTasks();
+updateDayStatus();
 setTimeout(loadBriefing,2000);
 loadRemote();
-setTimeout(loadBookings, 1500);
+setTimeout(loadBookings,1500);
 </script>
 </body>
 </html>
