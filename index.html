@@ -233,15 +233,18 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .toast.err{border-color:rgba(255,68,68,.4);color:#ff6b6b;}
 .toast.sync{border-color:rgba(232,255,71,.3);color:var(--accent);}
 
+/* Mobile-only elements */
+.mobile-only{display:none;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.syncing{animation:spin .7s linear infinite;display:inline-block;}
+
 @media(max-width:660px){
-  /* Layout */
   body{height:100dvh;}
   main{grid-template-columns:1fr;height:calc(100dvh - 52px);}
   .right-panel{display:none;}
   .fab{display:flex;}
   .add-form{display:none;}
-
-  /* Header compacto */
+  .mobile-only{display:block;}
   header{padding:8px 14px;gap:8px;}
   .logo{font-size:18px;letter-spacing:2px;}
   .view-btn{padding:4px 10px;font-size:10px;}
@@ -249,24 +252,16 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   .notif-btn{width:26px;height:26px;font-size:11px;}
   .prog-ring{width:26px;height:26px;}
   .prog-ring svg{width:26px;height:26px;}
-
-  /* Stats bar más compacta */
   .stats-bar{flex-shrink:0;}
   .stat-item{padding:5px 4px;}
   .sval{font-size:16px;}
   .slbl{font-size:7px;}
-
-  /* Tabs */
   .tab-btn{padding:7px;font-size:9px;letter-spacing:1px;}
-
-  /* Day nav */
   .day-nav{padding:7px 12px;}
   .dn-btn{width:32px;height:32px;font-size:14px;}
   .dn-label{font-size:13px;}
   .dn-sub{font-size:8px;}
   .goto-today{font-size:10px;padding:5px;}
-
-  /* Timeline — más espacio y bloques más grandes para dedo */
   .timeline{padding:8px 10px;-webkit-overflow-scrolling:touch;}
   .tblock{min-height:52px;margin-bottom:4px;gap:8px;}
   .tlabel{width:42px;font-size:9px;}
@@ -281,32 +276,23 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   .enote{font-size:10px;max-width:100%;}
   .elink{font-size:10px;max-width:100%;}
   .ecat{width:3px;}
-
-  /* Acciones siempre visibles en móvil */
   .eactions{opacity:1;}
   .evbtn{font-size:13px;padding:3px 5px;}
-
-  /* Tasks panel */
   .tasks-panel{padding:10px 12px;}
   .titem{padding:9px 10px;min-height:44px;}
   .tlbl2{font-size:12px;}
-
-  /* FAB bien separado del borde inferior (safe area) */
-  .fab{bottom:max(22px, env(safe-area-inset-bottom, 22px));right:16px;width:54px;height:54px;font-size:28px;}
-
-  /* Toast arriba en móvil para no tapar FAB */
+  .fab{bottom:max(22px,env(safe-area-inset-bottom,22px));right:16px;width:54px;height:54px;font-size:28px;}
   .toast{bottom:auto;top:70px;transform:translateX(-50%) translateY(-10px);}
   .toast.show{transform:translateX(-50%) translateY(0);}
-
-  /* Modal ocupa más pantalla en móvil */
   .modal{padding:18px 16px;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;max-height:92dvh;margin:0;}
   .modal-overlay{align-items:flex-end;}
-
-  /* Week view en móvil */
   .wk-ch .wd{font-size:7px;}
   .wk-ch .wdn{font-size:13px;}
   .wk-hr{font-size:7px;}
   .wk-ev{font-size:8px;}
+  #miniCalMobile{padding:10px 12px;}
+  #miniCalMobile .cal-month{font-size:12px;}
+  #miniCalMobile .cal-day{font-size:10px;}
 }
 </style>
 </head>
@@ -333,6 +319,38 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 
 <main>
   <div class="left-panel">
+
+    <!-- BARRA MÓVIL: calendario + sync + solicitudes -->
+    <div class="mobile-only" style="border-bottom:1px solid var(--border);flex-shrink:0;">
+
+      <!-- Fila de acciones rápidas -->
+      <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);">
+        <!-- Toggle calendario -->
+        <button id="calToggleBtn" onclick="toggleMobileCal()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
+          <span>📅</span><span id="calToggleLabel">CALENDARIO</span><span id="calToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+        </button>
+        <!-- Toggle solicitudes -->
+        <button id="bookToggleBtn" onclick="toggleMobileBookings()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
+          <span>🤝</span><span>REUNIONES</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+        </button>
+        <!-- Sync -->
+        <button onclick="syncNow()" title="Sincronizar" style="padding:9px 14px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;transition:color .2s;" id="syncBtn">↻</button>
+      </div>
+
+      <!-- Calendario desplegable -->
+      <div id="mobileCalPanel" style="display:none;border-bottom:1px solid var(--border);">
+        <div id="miniCalMobile" class="mini-cal" style="padding:10px 12px;"></div>
+      </div>
+
+      <!-- Solicitudes desplegable -->
+      <div id="mobileBookingsPanel" style="display:none;border-bottom:1px solid var(--border);">
+        <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;">
+          <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>
+        </div>
+      </div>
+
+    </div>
+
     <div class="stats-bar">
       <div class="stat-item"><div class="sval" id="sTotal">0</div><div class="slbl">Bloques</div></div>
       <div class="stat-item"><div class="sval" id="sDone">0</div><div class="slbl">Hechos</div></div>
@@ -648,7 +666,11 @@ function renderCal(){
   }
   const tot=sd+last.getDate(),rem=tot%7===0?0:7-(tot%7);
   for(let i=1;i<=rem;i++)h+=`<div class="cal-day oth">${i}</div>`;
-  document.getElementById('miniCal').innerHTML=h+'</div>';
+  const html=h+'</div>';
+  document.getElementById('miniCal').innerHTML=html;
+  // Mirror to mobile calendar
+  const mob=document.getElementById('miniCalMobile');
+  if(mob) mob.innerHTML=html;
 }
 function pickDay(ds){viewDate=ds;document.getElementById('bDate').value=ds;renderCal();renderView();}
 function calN(d){calMon.setMonth(calMon.getMonth()+d);renderCal();}
@@ -708,7 +730,7 @@ function renderDay(){
   tl.innerHTML=html;updateStats(db);
 }
 function chDay(n){viewDate=addDays(viewDate,n);renderView();renderCal();}
-function openDatePicker(){const el=document.getElementById('dateJumper');if(!el)return;el.value=viewDate;el.showPicker?el.showPicker():el.click();}
+function openDatePicker(){const el=document.getElementById('dateJumper');if(!el)return;el.value=viewDate;try{if(el.showPicker)el.showPicker();else el.click();}catch(e){const v=prompt('Fecha (AAAA-MM-DD):',viewDate);if(v&&/^\d{4}-\d{2}-\d{2}$/.test(v))jumpToDate(v);}}
 function jumpToDate(ds){if(!ds)return;viewDate=ds;document.getElementById('bDate').value=ds;const[y,m]=ds.split('-').map(Number);calMon=new Date(y,m-1,1);renderView();renderCal();}
 
 // ── WEEK VIEW ────────────────────────────────
@@ -973,30 +995,41 @@ async function loadBookings() {
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
     });
     const data = await r.json();
-    const panel = document.getElementById('bookingsPanel');
-    const list  = document.getElementById('bookingsList');
-    const badge = document.getElementById('bookingsBadge');
+    const panel  = document.getElementById('bookingsPanel');
+    const list   = document.getElementById('bookingsList');
+    const badge  = document.getElementById('bookingsBadge');
+    const listM  = document.getElementById('bookingsListMobile');
+    const badgeM = document.getElementById('bookBadgeMob');
+    const bookBtn= document.getElementById('bookToggleBtn');
 
-    if (!data.length) { panel.style.display='none'; return; }
+    if (!data.length) {
+      if(panel) panel.style.display='none';
+      if(badgeM){ badgeM.style.display='none'; }
+      if(bookBtn) bookBtn.style.color='';
+      if(listM) listM.innerHTML='<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>';
+      return;
+    }
 
-    panel.style.display = 'block';
-    badge.textContent = data.length;
-
-    list.innerHTML = data.map(b => `
+    const cardsHtml = data.map(b => `
       <div style="background:var(--surface2);border:1px solid rgba(255,107,53,.3);border-radius:8px;padding:8px 10px;">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px;">
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${b.name}</div>
-            <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
-            ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
-            ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
-          </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
+          ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
+          ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
         </div>
         <div style="display:flex;gap:5px;margin-top:7px;">
           <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
           <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
         </div>
       </div>`).join('');
+
+    // Desktop panel
+    if(panel){ panel.style.display='block'; badge.textContent=data.length; list.innerHTML=cardsHtml; }
+    // Mobile badge + list
+    if(badgeM){ badgeM.style.display='inline'; badgeM.textContent=data.length; }
+    if(bookBtn) bookBtn.style.color='var(--accent2)';
+    if(listM) listM.innerHTML=cardsHtml;
   } catch(e) {}
 }
 
@@ -1023,13 +1056,40 @@ async function rejectBooking(id) {
   showToast('Solicitud rechazada','err');
 }
 
+// ── MOBILE TOGGLES ────────────────────────────
+let calOpen = false, bookOpen = false;
+
+function toggleMobileCal() {
+  calOpen = !calOpen;
+  document.getElementById('mobileCalPanel').style.display = calOpen ? 'block' : 'none';
+  document.getElementById('calToggleArrow').style.transform = calOpen ? 'rotate(180deg)' : '';
+  document.getElementById('calToggleBtn').style.color = calOpen ? 'var(--accent)' : '';
+}
+
+function toggleMobileBookings() {
+  bookOpen = !bookOpen;
+  document.getElementById('mobileBookingsPanel').style.display = bookOpen ? 'block' : 'none';
+  document.getElementById('bookToggleArrow').style.transform = bookOpen ? 'rotate(180deg)' : '';
+  document.getElementById('bookToggleBtn').style.color = bookOpen ? 'var(--accent)' : (document.getElementById('bookBadgeMob').style.display!=='none'?'var(--accent2)':'');
+}
+
+async function syncNow() {
+  const btn = document.getElementById('syncBtn');
+  btn.style.color = 'var(--accent)';
+  btn.innerHTML = '<span class="syncing">↻</span>';
+  await loadRemote();
+  await loadBookings();
+  btn.innerHTML = '↻';
+  btn.style.color = '';
+}
+
 // ── INIT ──────────────────────────────────────
 document.getElementById('bDate').value=todayStr();
 document.getElementById('bStart').value='09:00';
 updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day')renderView();},60000);
-setInterval(loadBookings, 60000); // Check bookings every minute
+setInterval(loadBookings, 60000);
 renderCal();renderView();renderTasks();
 setTimeout(loadBriefing,2000);
 loadRemote();
