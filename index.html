@@ -234,10 +234,79 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 .toast.sync{border-color:rgba(232,255,71,.3);color:var(--accent);}
 
 @media(max-width:660px){
-  main{grid-template-columns:1fr;}
+  /* Layout */
+  body{height:100dvh;}
+  main{grid-template-columns:1fr;height:calc(100dvh - 52px);}
   .right-panel{display:none;}
   .fab{display:flex;}
   .add-form{display:none;}
+
+  /* Header compacto */
+  header{padding:8px 14px;gap:8px;}
+  .logo{font-size:18px;letter-spacing:2px;}
+  .view-btn{padding:4px 10px;font-size:10px;}
+  .clock-pill{display:none;}
+  .notif-btn{width:26px;height:26px;font-size:11px;}
+  .prog-ring{width:26px;height:26px;}
+  .prog-ring svg{width:26px;height:26px;}
+
+  /* Stats bar más compacta */
+  .stats-bar{flex-shrink:0;}
+  .stat-item{padding:5px 4px;}
+  .sval{font-size:16px;}
+  .slbl{font-size:7px;}
+
+  /* Tabs */
+  .tab-btn{padding:7px;font-size:9px;letter-spacing:1px;}
+
+  /* Day nav */
+  .day-nav{padding:7px 12px;}
+  .dn-btn{width:32px;height:32px;font-size:14px;}
+  .dn-label{font-size:13px;}
+  .dn-sub{font-size:8px;}
+  .goto-today{font-size:10px;padding:5px;}
+
+  /* Timeline — más espacio y bloques más grandes para dedo */
+  .timeline{padding:8px 10px;-webkit-overflow-scrolling:touch;}
+  .tblock{min-height:52px;margin-bottom:4px;gap:8px;}
+  .tlabel{width:42px;font-size:9px;}
+  .tlabel .ts{font-size:10px;}
+  .tlabel .te{font-size:9px;}
+  .tlabel .td{font-size:8px;}
+  .tline{width:12px;}
+  .tdot{width:7px;height:7px;margin-top:9px;}
+  .tev{padding:8px 10px;min-height:48px;border-radius:10px;}
+  .etitle{font-size:13px;}
+  .emeta{font-size:10px;}
+  .enote{font-size:10px;max-width:100%;}
+  .elink{font-size:10px;max-width:100%;}
+  .ecat{width:3px;}
+
+  /* Acciones siempre visibles en móvil */
+  .eactions{opacity:1;}
+  .evbtn{font-size:13px;padding:3px 5px;}
+
+  /* Tasks panel */
+  .tasks-panel{padding:10px 12px;}
+  .titem{padding:9px 10px;min-height:44px;}
+  .tlbl2{font-size:12px;}
+
+  /* FAB bien separado del borde inferior (safe area) */
+  .fab{bottom:max(22px, env(safe-area-inset-bottom, 22px));right:16px;width:54px;height:54px;font-size:28px;}
+
+  /* Toast arriba en móvil para no tapar FAB */
+  .toast{bottom:auto;top:70px;transform:translateX(-50%) translateY(-10px);}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+
+  /* Modal ocupa más pantalla en móvil */
+  .modal{padding:18px 16px;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;width:100%;max-width:100%;max-height:92dvh;margin:0;}
+  .modal-overlay{align-items:flex-end;}
+
+  /* Week view en móvil */
+  .wk-ch .wd{font-size:7px;}
+  .wk-ch .wdn{font-size:13px;}
+  .wk-hr{font-size:7px;}
+  .wk-ev{font-size:8px;}
 }
 </style>
 </head>
