@@ -326,17 +326,21 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
       <!-- Fila de acciones rápidas -->
       <div style="display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);">
         <!-- Toggle calendario -->
-        <button id="calToggleBtn" onclick="toggleMobileCal()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
-          <span>📅</span><span id="calToggleLabel">CALENDARIO</span><span id="calToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+        <button id="calToggleBtn" onclick="toggleMobileCal()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
+          <span>📅</span><span>CAL</span><span id="calToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
         </button>
         <!-- Toggle solicitudes -->
-        <button id="bookToggleBtn" onclick="toggleMobileBookings()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
-          <span>🤝</span><span>REUNIONES</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+        <button id="bookToggleBtn" onclick="toggleMobileBookings()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
+          <span>🤝</span><span>PENDING</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+        </button>
+        <!-- Toggle próximas confirmadas -->
+        <button id="nextToggleBtn" onclick="toggleMobileNext()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
+          <span>✅</span><span>PRÓXIMAS</span><span id="nextToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
         </button>
         <!-- HOY -->
-        <button onclick="goToday()" title="Ir a hoy" style="padding:9px 10px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:1px;transition:color .2s;" id="todayBtn">HOY</button>
+        <button onclick="goToday()" title="Ir a hoy" style="padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1px;transition:color .2s;" id="todayBtn">HOY</button>
         <!-- Sync -->
-        <button onclick="syncNow()" title="Sincronizar" style="padding:9px 13px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;transition:color .2s;" id="syncBtn">↻</button>
+        <button onclick="syncNow()" title="Sincronizar" style="padding:9px 11px;background:none;border:none;color:var(--muted);cursor:pointer;font-size:15px;transition:color .2s;" id="syncBtn">↻</button>
       </div>
 
       <!-- Estado del día -->
@@ -354,6 +358,13 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
       <div id="mobileBookingsPanel" style="display:none;border-bottom:1px solid var(--border);">
         <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;">
           <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>
+        </div>
+      </div>
+
+      <!-- Próximas reuniones confirmadas -->
+      <div id="mobileNextPanel" style="display:none;border-bottom:1px solid var(--border);">
+        <div id="mobileNextList" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
+          <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Cargando...</div>
         </div>
       </div>
 
@@ -1067,7 +1078,7 @@ async function rejectBooking(id) {
 }
 
 // ── MOBILE TOGGLES ────────────────────────────
-let calOpen = false, bookOpen = false;
+let calOpen = false, bookOpen = false, nextOpen = false;
 
 function toggleMobileCal() {
   calOpen = !calOpen;
@@ -1081,6 +1092,68 @@ function toggleMobileBookings() {
   document.getElementById('mobileBookingsPanel').style.display = bookOpen ? 'block' : 'none';
   document.getElementById('bookToggleArrow').style.transform = bookOpen ? 'rotate(180deg)' : '';
   document.getElementById('bookToggleBtn').style.color = bookOpen ? 'var(--accent)' : (document.getElementById('bookBadgeMob').style.display!=='none'?'var(--accent2)':'');
+}
+
+function toggleMobileNext() {
+  nextOpen = !nextOpen;
+  document.getElementById('mobileNextPanel').style.display = nextOpen ? 'block' : 'none';
+  document.getElementById('nextToggleArrow').style.transform = nextOpen ? 'rotate(180deg)' : '';
+  document.getElementById('nextToggleBtn').style.color = nextOpen ? '#4caf50' : '';
+  if(nextOpen) loadNextConfirmed();
+}
+
+async function loadNextConfirmed() {
+  const list = document.getElementById('mobileNextList');
+  if(!list) return;
+  try {
+    const today = todayStr();
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.confirmed&date=gte.${today}&select=*&order=date.asc,time_start.asc&limit=15`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+
+    if(!data.length) {
+      list.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:16px 0;">Sin reuniones confirmadas próximas</div>';
+      return;
+    }
+
+    // Group by date
+    const grouped = {};
+    data.forEach(b => {
+      if(!grouped[b.date]) grouped[b.date] = [];
+      grouped[b.date].push(b);
+    });
+
+    const DAYS = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const MONS = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+    let html = '';
+    Object.keys(grouped).sort().forEach(date => {
+      const [y,m,d] = date.split('-').map(Number);
+      const dt = new Date(y,m-1,d);
+      const isToday = date === today;
+      const isTomorrow = date === addDays(today,1);
+      const label = isToday ? 'HOY' : isTomorrow ? 'MAÑANA' : `${DAYS[dt.getDay()]} ${d} ${MONS[m-1]}`;
+
+      html += `<div style="margin-bottom:8px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:1.5px;color:${isToday?'var(--accent)':'var(--muted)'};text-transform:uppercase;margin-bottom:4px;padding:0 2px;">${label}</div>`;
+
+      grouped[date].forEach(b => {
+        html += `<div style="background:var(--surface2);border:1px solid rgba(76,175,80,.25);border-left:3px solid #4caf50;border-radius:7px;padding:7px 10px;margin-bottom:4px;cursor:pointer;" onclick="pickDay('${date}');setView('day');">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:12px;font-weight:600;color:var(--text);">${b.name}</div>
+            <div style="font-size:10px;color:#4caf50;font-family:'DM Mono',monospace;font-weight:600;">${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
+          </div>
+          ${b.reason?`<div style="font-size:10px;color:var(--muted);margin-top:2px;line-height:1.4;">${b.reason.slice(0,60)}${b.reason.length>60?'…':''}</div>`:''}
+        </div>`;
+      });
+      html += '</div>';
+    });
+
+    list.innerHTML = html;
+  } catch(e) {
+    list.innerHTML = '<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Error al cargar</div>';
+  }
 }
 
 function goToday() {
