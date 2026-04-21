@@ -478,12 +478,14 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
     <div id="bookingsPanel" style="display:none;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;">
         <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
-          <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 10px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">PENDIENTES <span id="bookingsBadge">0</span></button>
-          <button id="bTabHist" onclick="switchBookTab('history')" style="padding:3px 10px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">HISTORIAL</button>
+          <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 8px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">PENDIENTES <span id="bookingsBadge">0</span></button>
+          <button id="bTabDone" onclick="switchBookTab('done')" style="padding:3px 8px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">REALIZADAS</button>
+          <button id="bTabHist" onclick="switchBookTab('history')" style="padding:3px 8px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">HISTORIAL</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <button id="clearRejectedBtn" onclick="clearBookings('rejected')" style="display:none;font-size:9px;color:#ff6b6b;background:none;border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
           <button id="clearConfirmedBtn" onclick="clearBookings('confirmed')" style="display:none;font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
+          <button id="clearDoneBtn" onclick="clearBookings('completed')" style="display:none;font-size:9px;color:#5b9cf6;background:none;border:1px solid rgba(91,156,246,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Realizadas</button>
           <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻</div>
         </div>
       </div>
@@ -887,7 +889,24 @@ function setMeetStatus(id, status){
   if(!b) return;
   b.meetStatus=status;
   save();renderView();
-  showToast(status==='done'?'✓ Reunión realizada':'✕ Reunión no realizada', status==='done'?'ok':'err');
+  showToast(status==='done'?'✅ Reunión realizada':'✕ Reunión no realizada', status==='done'?'ok':'err');
+
+  // Si se realizó, marcar el booking correspondiente como completed en Supabase
+  if(status==='done'){
+    // Buscar booking que coincida por nombre del bloque, fecha y hora
+    const name = b.title.replace('🤝 ','').trim();
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=eq.confirmed&select=id&limit=1`, {
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+    }).then(r=>r.json()).then(data=>{
+      if(data[0]){
+        fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
+          method:'PATCH',
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({status:'completed'})
+        }).then(()=>{ loadBookings(); });
+      }
+    }).catch(()=>{});
+  }
 }
 function removeB(id){blocks=blocks.filter(x=>x.id!==id);save();renderView();renderCal();}
 function addBlock(){
@@ -1181,15 +1200,23 @@ async function loadBriefing(){
 let bookTab = 'pending';
 function switchBookTab(tab) {
   bookTab = tab;
-  const pBtn = document.getElementById('bTabPend');
-  const hBtn = document.getElementById('bTabHist');
+  const tabs = {
+    pending: document.getElementById('bTabPend'),
+    done:    document.getElementById('bTabDone'),
+    history: document.getElementById('bTabHist')
+  };
+  const colors = { pending:'var(--accent2)', done:'#4caf50', history:'var(--accent3)' };
+  Object.entries(tabs).forEach(([k,el])=>{
+    if(!el) return;
+    el.style.background = k===tab ? colors[k] : 'var(--surface2)';
+    el.style.color = k===tab ? 'var(--bg)' : 'var(--muted)';
+  });
   const clrR = document.getElementById('clearRejectedBtn');
   const clrC = document.getElementById('clearConfirmedBtn');
-  if(pBtn){ pBtn.style.background = tab==='pending'?'var(--accent2)':'var(--surface2)'; pBtn.style.color = tab==='pending'?'var(--bg)':'var(--muted)'; }
-  if(hBtn){ hBtn.style.background = tab==='history'?'var(--accent3)':'var(--surface2)'; hBtn.style.color = tab==='history'?'var(--bg)':'var(--muted)'; }
-  // Show delete buttons only in history tab
+  const clrD = document.getElementById('clearDoneBtn');
   if(clrR) clrR.style.display = tab==='history' ? 'inline-block' : 'none';
   if(clrC) clrC.style.display = tab==='history' ? 'inline-block' : 'none';
+  if(clrD) clrD.style.display = tab==='done' ? 'inline-block' : 'none';
   loadBookings();
 }
 
@@ -1230,8 +1257,10 @@ async function clearBookings(status) {
 async function loadBookings() {
   try {
     const isPending = bookTab === 'pending';
-    const filter = isPending ? 'status=eq.pending' : 'status=in.(confirmed,rejected)';
-    const r = await fetch(`${SB_URL}/rest/v1/bookings?${filter}&select=*&order=date.desc,time_start.desc&limit=20`, {
+    const isDone = bookTab === 'done';
+    const filter = isPending ? 'status=eq.pending' : isDone ? 'status=eq.completed' : 'status=in.(confirmed,rejected)';
+    const order = isPending || isDone ? 'date.asc,time_start.asc' : 'date.desc,time_start.desc';
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?${filter}&select=*&order=${order}&limit=30`, {
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
     });
     const data = await r.json();
@@ -1242,23 +1271,24 @@ async function loadBookings() {
     const badgeM = document.getElementById('bookBadgeMob');
     const bookBtn= document.getElementById('bookToggleBtn');
 
-    // Always show panel
     if(panel) panel.style.display = 'block';
 
-    // Update pending badge
     if(isPending) {
       if(badge) badge.textContent = data.length;
       if(badgeM){ badgeM.style.display = data.length ? 'inline' : 'none'; badgeM.textContent = data.length; }
       if(bookBtn) bookBtn.style.color = data.length ? 'var(--accent2)' : '';
     }
 
+    const emptyMsg = isPending ? 'Sin solicitudes pendientes' : isDone ? 'Sin reuniones realizadas aún' : 'Sin historial';
+
     const cardsHtml = !data.length
-      ? `<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">${isPending ? 'Sin solicitudes pendientes' : 'Sin historial'}</div>`
+      ? `<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">${emptyMsg}</div>`
       : data.map(b => {
-          const statusColor = b.status==='confirmed' ? '#4caf50' : b.status==='rejected' ? '#ff6b6b' : 'var(--accent2)';
-          const statusLabel = b.status==='confirmed' ? '✓ Confirmada' : b.status==='rejected' ? '✕ Rechazada' : '⏳ Pendiente';
+          const statusColor = b.status==='completed' ? '#5b9cf6' : b.status==='confirmed' ? '#4caf50' : b.status==='rejected' ? '#ff6b6b' : 'var(--accent2)';
+          const statusLabel = b.status==='completed' ? '✅ Realizada' : b.status==='confirmed' ? '✓ Confirmada' : b.status==='rejected' ? '✕ Rechazada' : '⏳ Pendiente';
+          const borderColor = b.status==='completed' ? 'rgba(91,156,246,.3)' : b.status==='pending' ? 'rgba(255,107,53,.3)' : b.status==='confirmed' ? 'rgba(76,175,80,.25)' : 'rgba(255,68,68,.2)';
           const swipeId = `sw-b-${b.id}`;
-          const inner = `<div style="background:var(--surface2);border:1px solid ${b.status==='pending'?'rgba(255,107,53,.3)':b.status==='confirmed'?'rgba(76,175,80,.25)':'rgba(255,68,68,.2)'};border-radius:8px;padding:8px 10px;">
+          const inner = `<div style="background:var(--surface2);border:1px solid ${borderColor};border-radius:8px;padding:8px 10px;">
             <div style="flex:1;min-width:0;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
