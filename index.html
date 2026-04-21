@@ -373,9 +373,8 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
       <!-- Historial reuniones desplegable -->
       <div id="mobileBookingsPanel" style="display:none;border-bottom:1px solid var(--border);">
         <div style="display:flex;border-bottom:1px solid var(--border);">
-          <button onclick="switchBookTab('pending')" id="mbTabPend" style="flex:1;padding:8px 4px;background:rgba(255,107,26,.15);color:var(--accent2);border:none;border-right:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🟠 PENDIENTES</button>
-          <button onclick="switchBookTab('done')" id="mbTabDone" style="flex:1;padding:8px 4px;background:var(--surface2);color:var(--muted);border:none;border-right:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🟢 REALIZADAS</button>
-          <button onclick="switchBookTab('history')" id="mbTabHist" style="flex:1;padding:8px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🔵 HISTORIAL</button>
+          <button onclick="switchBookTab('pending')" id="mbTabPend" style="flex:1;padding:10px 4px;background:rgba(255,107,26,.15);color:var(--accent2);border:none;border-right:1px solid var(--border);font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">🟠 PENDIENTES</button>
+          <button onclick="switchBookTab('done')" id="mbTabDone" style="flex:1;padding:10px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s;">🟢 REALIZADAS</button>
         </div>
         <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
           <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>
@@ -479,18 +478,15 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
   <div class="right-panel">
     <div id="miniCal" class="mini-cal"></div>
 
-    <!-- SOLICITUDES PENDIENTES + HISTORIAL -->
+    <!-- SOLICITUDES PENDIENTES + REALIZADAS -->
     <div id="bookingsPanel" style="display:none;border-bottom:1px solid var(--border);flex-shrink:0;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px 6px;">
         <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;">
-          <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 8px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">PENDIENTES <span id="bookingsBadge">0</span></button>
-          <button id="bTabDone" onclick="switchBookTab('done')" style="padding:3px 8px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">REALIZADAS</button>
-          <button id="bTabHist" onclick="switchBookTab('history')" style="padding:3px 8px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">HISTORIAL</button>
+          <button id="bTabPend" onclick="switchBookTab('pending')" style="padding:3px 10px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">🟠 PENDIENTES <span id="bookingsBadge">0</span></button>
+          <button id="bTabDone" onclick="switchBookTab('done')" style="padding:3px 10px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;">🟢 REALIZADAS</button>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-          <button id="clearRejectedBtn" onclick="clearBookings('rejected')" style="display:none;font-size:9px;color:#ff6b6b;background:none;border:1px solid rgba(255,68,68,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Rechazadas</button>
-          <button id="clearConfirmedBtn" onclick="clearBookings('confirmed')" style="display:none;font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Confirmadas</button>
-          <button id="clearDoneBtn" onclick="clearBookings('completed')" style="display:none;font-size:9px;color:#5b9cf6;background:none;border:1px solid rgba(91,156,246,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Realizadas</button>
+          <button id="clearDoneBtn" onclick="clearBookings('completed')" style="display:none;font-size:9px;color:#4caf50;background:none;border:1px solid rgba(76,175,80,.3);border-radius:5px;padding:2px 7px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">🗑 Borrar</button>
           <div style="font-size:9px;color:var(--muted);cursor:pointer;" onclick="loadBookings()">↻</div>
         </div>
       </div>
@@ -1213,32 +1209,54 @@ async function loadBriefing(){
 let bookTab = 'pending';
 function switchBookTab(tab) {
   bookTab = tab;
-  // Desktop tabs
-  const dMap = { pending:['bTabPend','var(--accent2)'], done:['bTabDone','#4caf50'], history:['bTabHist','var(--accent3)'] };
-  Object.entries(dMap).forEach(([k,[id,col]])=>{
-    const el=document.getElementById(id); if(!el)return;
-    el.style.background = k===tab ? col : 'var(--surface2)';
-    el.style.color = k===tab ? 'var(--bg)' : 'var(--muted)';
-  });
-  // Mobile tabs
-  const mStyles = {
-    pending: { active:'rgba(255,107,26,.25)', activeColor:'var(--accent2)', inactive:'var(--surface2)', inactiveColor:'var(--muted)' },
-    done:    { active:'rgba(76,175,80,.2)',   activeColor:'#4caf50',        inactive:'var(--surface2)', inactiveColor:'var(--muted)' },
-    history: { active:'rgba(91,156,246,.2)',  activeColor:'var(--accent3)', inactive:'var(--surface2)', inactiveColor:'var(--muted)' }
-  };
-  ['pending','done','history'].forEach(k=>{
-    const el=document.getElementById(`mbTab${k.charAt(0).toUpperCase()+k.slice(1)}`); if(!el)return;
-    const s=mStyles[k];
-    el.style.background = k===tab ? s.active : s.inactive;
-    el.style.color = k===tab ? s.activeColor : s.inactiveColor;
-  });
-  const clrR = document.getElementById('clearRejectedBtn');
-  const clrC = document.getElementById('clearConfirmedBtn');
+  const isPend = tab === 'pending';
+  // Desktop
+  const pd = document.getElementById('bTabPend');
+  const dd = document.getElementById('bTabDone');
+  if(pd){ pd.style.background = isPend ? 'var(--accent2)' : 'var(--surface2)'; pd.style.color = isPend ? 'var(--bg)' : 'var(--muted)'; }
+  if(dd){ dd.style.background = !isPend ? 'rgba(76,175,80,.2)' : 'var(--surface2)'; dd.style.color = !isPend ? '#4caf50' : 'var(--muted)'; }
+  // Mobile
+  const pm = document.getElementById('mbTabPend');
+  const dm = document.getElementById('mbTabDone');
+  if(pm){ pm.style.background = isPend ? 'rgba(255,107,26,.2)' : 'var(--surface2)'; pm.style.color = isPend ? 'var(--accent2)' : 'var(--muted)'; }
+  if(dm){ dm.style.background = !isPend ? 'rgba(76,175,80,.2)' : 'var(--surface2)'; dm.style.color = !isPend ? '#4caf50' : 'var(--muted)'; }
+  // Show/hide delete button
   const clrD = document.getElementById('clearDoneBtn');
-  if(clrR) clrR.style.display = tab==='history' ? 'inline-block' : 'none';
-  if(clrC) clrC.style.display = tab==='history' ? 'inline-block' : 'none';
-  if(clrD) clrD.style.display = tab==='done' ? 'inline-block' : 'none';
+  if(clrD) clrD.style.display = !isPend ? 'inline-block' : 'none';
   loadBookings();
+}
+
+// Auto-mark past confirmed meetings as completed
+async function autoMarkPastMeetings() {
+  try {
+    const today = todayStr();
+    const nowMins = t2m(nowStr());
+    // Get confirmed bookings
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?status=eq.confirmed&select=id,date,time_end`, {
+      headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
+    });
+    const data = await r.json();
+    const toMark = data.filter(b => {
+      if(b.date < today) return true; // past days
+      if(b.date === today && b.time_end && t2m(b.time_end) < nowMins) return true; // today, past end time
+      return false;
+    });
+    if(!toMark.length) return;
+    // Mark as completed in batch
+    await Promise.all(toMark.map(b =>
+      fetch(`${SB_URL}/rest/v1/bookings?id=eq.${b.id}`, {
+        method:'PATCH',
+        headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body: JSON.stringify({status:'completed'})
+      })
+    ));
+    // Also update matching blocks meetStatus
+    toMark.forEach(bk => {
+      const bl = blocks.find(b => b.category==='meet' && b.date===bk.date);
+      if(bl && !bl.meetStatus) bl.meetStatus = 'done';
+    });
+    if(toMark.length) { save(); renderView(); loadBookings(); }
+  } catch(e) {}
 }
 
 async function clearBookings(status) {
@@ -1594,12 +1612,13 @@ updateClock();
 setInterval(updateClock,30000);
 setInterval(()=>{if(curView==='day'){renderView();updateDayStatus();}},60000);
 setInterval(loadBookings,60000);
-setInterval(checkNewBookings,45000); // Check for new booking requests every 45s
+setInterval(checkNewBookings,45000);
+setInterval(autoMarkPastMeetings,5*60*1000); // Check every 5 min
 renderCal();renderView();renderTasks();
 updateDayStatus();
 setTimeout(loadBriefing,2000);
 loadRemote();
-setTimeout(()=>{ loadBookings(); checkNewBookings(); },1500);
+setTimeout(()=>{ loadBookings(); checkNewBookings(); autoMarkPastMeetings(); },2000);
 </script>
 </body>
 </html>
