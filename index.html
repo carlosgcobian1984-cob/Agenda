@@ -823,9 +823,8 @@ function renderDay(){
           ${b.note?`<div class="enote" style="color:var(--text2);opacity:.85;">📝 ${b.note.slice(0,60)}${b.note.length>60?'…':''}</div>`:''}
           ${b.link?`<a class="elink" href="${b.link}" target="_blank" onclick="event.stopPropagation()">🔗 ${b.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
         </div>
-        <div class="eactions" style="${isMeet?'opacity:1;':''}">
-          ${isMeet && b.meetStatus !== 'done' ? `<button class="evbtn" title="Marcar realizada" onclick="event.stopPropagation();setMeetStatus(${b.id},'done')" style="color:#4caf50;font-size:15px;">✓</button>` : ''}
-          ${isMeet && b.meetStatus === 'done' ? `<button class="evbtn" title="Desmarcar" onclick="event.stopPropagation();setMeetStatus(${b.id},null)" style="color:#4caf50;font-size:13px;opacity:.6;">✓</button>` : ''}
+        <div class="eactions" style="opacity:1;">
+          ${b.meetStatus !== 'done' ? `<button class="evbtn" title="Marcar realizada" onclick="event.stopPropagation();setMeetStatus(${b.id},'done')" style="color:#4caf50;font-size:15px;">✓</button>` : `<button class="evbtn" title="Desmarcar" onclick="event.stopPropagation();setMeetStatus(${b.id},null)" style="color:#4caf50;font-size:13px;opacity:.6;">✓</button>`}
           <button class="evbtn" onclick="event.stopPropagation();openEdit(${b.id})">✏️</button>
           <button class="evbtn" onclick="event.stopPropagation();removeB(${b.id})">✕</button>
         </div>
