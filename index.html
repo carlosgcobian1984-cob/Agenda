@@ -822,13 +822,10 @@ function renderDay(){
           <div class="emeta"><span>${catLbl(b.category)}</span>${isOv?'<span class="ovbadge">⚠ Solapamiento</span>':''}${b.recur&&b.recur!=='none'?`<span class="rbadge">↻ ${rLbl(b.recur)}</span>`:''}</div>
           ${b.note?`<div class="enote" style="color:var(--text2);opacity:.85;">📝 ${b.note.slice(0,60)}${b.note.length>60?'…':''}</div>`:''}
           ${b.link?`<a class="elink" href="${b.link}" target="_blank" onclick="event.stopPropagation()">🔗 ${b.link.replace(/^https?:\/\//,'').split('/')[0]}</a>`:''}
-          ${needsConfirm?`<div class="meet-status-btns">
-            <span style="font-size:10px;color:var(--muted);align-self:center;flex-shrink:0;">¿Se realizó?</span>
-            <button class="msb msb-yes" onclick="event.stopPropagation();setMeetStatus(${b.id},'done')">✓ Sí</button>
-            <button class="msb msb-no" onclick="event.stopPropagation();setMeetStatus(${b.id},'missed')">✕ No</button>
-          </div>`:''}
         </div>
-        <div class="eactions">
+        <div class="eactions" style="${isMeet?'opacity:1;':''}">
+          ${isMeet && b.meetStatus !== 'done' ? `<button class="evbtn" title="Marcar realizada" onclick="event.stopPropagation();setMeetStatus(${b.id},'done')" style="color:#4caf50;font-size:15px;">✓</button>` : ''}
+          ${isMeet && b.meetStatus === 'done' ? `<button class="evbtn" title="Desmarcar" onclick="event.stopPropagation();setMeetStatus(${b.id},null)" style="color:#4caf50;font-size:13px;opacity:.6;">✓</button>` : ''}
           <button class="evbtn" onclick="event.stopPropagation();openEdit(${b.id})">✏️</button>
           <button class="evbtn" onclick="event.stopPropagation();removeB(${b.id})">✕</button>
         </div>
@@ -892,15 +889,14 @@ function toggleB(id){
 function setMeetStatus(id, status){
   const b=blocks.find(x=>x.id===id);
   if(!b) return;
-  b.meetStatus=status;
-  save();renderView();
-  showToast(status==='done'?'✅ Reunión realizada':'✕ Reunión no realizada', status==='done'?'ok':'err');
+  b.meetStatus = status === null ? undefined : status;
+  save(); renderView();
 
-  // Si se realizó, marcar el booking correspondiente como completed en Supabase
-  if(status==='done'){
-    // Buscar booking que coincida por nombre del bloque, fecha y hora
+  if(status === 'done'){
+    showToast('✅ Reunión marcada como realizada','ok');
+    // Marcar booking como completed en Supabase
     const name = b.title.replace('🤝 ','').trim();
-    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=eq.confirmed&select=id&limit=1`, {
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=in.(confirmed,pending)&select=id&limit=1`,{
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
     }).then(r=>r.json()).then(data=>{
       if(data[0]){
@@ -908,9 +904,26 @@ function setMeetStatus(id, status){
           method:'PATCH',
           headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
           body:JSON.stringify({status:'completed'})
-        }).then(()=>{ loadBookings(); });
+        }).then(()=>loadBookings());
       }
     }).catch(()=>{});
+  } else if(status === null){
+    showToast('Reunión desmarcada','sync');
+    // Revertir a confirmed en Supabase si existe
+    const name = b.title.replace('🤝 ','').trim();
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=eq.completed&select=id&limit=1`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+    }).then(r=>r.json()).then(data=>{
+      if(data[0]){
+        fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
+          method:'PATCH',
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({status:'confirmed'})
+        }).then(()=>loadBookings());
+      }
+    }).catch(()=>{});
+  } else {
+    showToast('✕ Reunión no realizada','err');
   }
 }
 function removeB(id){blocks=blocks.filter(x=>x.id!==id);save();renderView();renderCal();}
