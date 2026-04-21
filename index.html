@@ -427,8 +427,8 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         </div>
         <div class="arow">
           <select class="asel" id="bCat" style="flex:1">
-            <option value="work">💼 Trabajo</option>
             <option value="meet">🤝 Reunión</option>
+            <option value="work">💼 Trabajo</option>
             <option value="sport">⚡ Deporte</option>
             <option value="food">🍽 Comida</option>
             <option value="personal">🎯 Personal</option>
@@ -1060,7 +1060,7 @@ function openAddBlockSimple(){
   document.getElementById('absDate').value=viewDate;
   document.getElementById('absStart').value='09:00';
   document.getElementById('absEnd').value='';
-  document.getElementById('absCat').value='work';
+  document.getElementById('absCat').value='meet';
   document.getElementById('addBlockSimpleModal').classList.add('open');
   setTimeout(()=>document.getElementById('absTitle').focus(),200);
 }
