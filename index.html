@@ -345,9 +345,9 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         <button id="calToggleBtn" onclick="toggleMobileCal()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
           <span>📅</span><span>CAL</span><span id="calToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
         </button>
-        <!-- Toggle solicitudes -->
+        <!-- Toggle historial reuniones -->
         <button id="bookToggleBtn" onclick="toggleMobileBookings()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
-          <span>🤝</span><span>PENDING</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
+          <span>🤝</span><span>HISTORIAL</span><span id="bookBadgeMob" style="display:none;background:var(--accent2);color:var(--bg);border-radius:8px;padding:0 5px;font-size:9px;font-weight:700;"></span><span id="bookToggleArrow" style="font-size:10px;transition:transform .2s;">▾</span>
         </button>
         <!-- Toggle próximas confirmadas -->
         <button id="nextToggleBtn" onclick="toggleMobileNext()" style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:9px 8px;background:none;border:none;border-right:1px solid var(--border);color:var(--muted);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:10px;font-weight:600;letter-spacing:.5px;transition:color .2s;">
@@ -370,13 +370,12 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         <div id="miniCalMobile" class="mini-cal" style="padding:10px 12px;"></div>
       </div>
 
-      <!-- Solicitudes desplegable -->
+      <!-- Historial reuniones desplegable -->
       <div id="mobileBookingsPanel" style="display:none;border-bottom:1px solid var(--border);">
-        <!-- Tabs móvil -->
         <div style="display:flex;border-bottom:1px solid var(--border);">
-          <button onclick="switchBookTab('pending')" id="mbTabPend" style="flex:1;padding:7px 4px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border-right:1px solid var(--border);">PENDIENTES</button>
-          <button onclick="switchBookTab('done')" id="mbTabDone" style="flex:1;padding:7px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border-right:1px solid var(--border);">REALIZADAS</button>
-          <button onclick="switchBookTab('history')" id="mbTabHist" style="flex:1;padding:7px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">HISTORIAL</button>
+          <button onclick="switchBookTab('pending')" id="mbTabPend" style="flex:1;padding:8px 4px;background:rgba(255,107,26,.15);color:var(--accent2);border:none;border-right:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🟠 PENDIENTES</button>
+          <button onclick="switchBookTab('done')" id="mbTabDone" style="flex:1;padding:8px 4px;background:var(--surface2);color:var(--muted);border:none;border-right:1px solid var(--border);font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🟢 REALIZADAS</button>
+          <button onclick="switchBookTab('history')" id="mbTabHist" style="flex:1;padding:8px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:.5px;transition:all .2s;">🔵 HISTORIAL</button>
         </div>
         <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
           <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>
@@ -1214,20 +1213,24 @@ async function loadBriefing(){
 let bookTab = 'pending';
 function switchBookTab(tab) {
   bookTab = tab;
-  const tabColors = { pending:'var(--accent2)', done:'#4caf50', history:'var(--accent3)' };
   // Desktop tabs
-  const dTabs = { pending:'bTabPend', done:'bTabDone', history:'bTabHist' };
-  Object.entries(dTabs).forEach(([k,id])=>{
+  const dMap = { pending:['bTabPend','var(--accent2)'], done:['bTabDone','#4caf50'], history:['bTabHist','var(--accent3)'] };
+  Object.entries(dMap).forEach(([k,[id,col]])=>{
     const el=document.getElementById(id); if(!el)return;
-    el.style.background = k===tab ? tabColors[k] : 'var(--surface2)';
+    el.style.background = k===tab ? col : 'var(--surface2)';
     el.style.color = k===tab ? 'var(--bg)' : 'var(--muted)';
   });
   // Mobile tabs
-  const mTabs = { pending:'mbTabPend', done:'mbTabDone', history:'mbTabHist' };
-  Object.entries(mTabs).forEach(([k,id])=>{
-    const el=document.getElementById(id); if(!el)return;
-    el.style.background = k===tab ? tabColors[k] : 'var(--surface2)';
-    el.style.color = k===tab ? (k==='done'?'var(--bg)':'var(--bg)') : 'var(--muted)';
+  const mStyles = {
+    pending: { active:'rgba(255,107,26,.25)', activeColor:'var(--accent2)', inactive:'var(--surface2)', inactiveColor:'var(--muted)' },
+    done:    { active:'rgba(76,175,80,.2)',   activeColor:'#4caf50',        inactive:'var(--surface2)', inactiveColor:'var(--muted)' },
+    history: { active:'rgba(91,156,246,.2)',  activeColor:'var(--accent3)', inactive:'var(--surface2)', inactiveColor:'var(--muted)' }
+  };
+  ['pending','done','history'].forEach(k=>{
+    const el=document.getElementById(`mbTab${k.charAt(0).toUpperCase()+k.slice(1)}`); if(!el)return;
+    const s=mStyles[k];
+    el.style.background = k===tab ? s.active : s.inactive;
+    el.style.color = k===tab ? s.activeColor : s.inactiveColor;
   });
   const clrR = document.getElementById('clearRejectedBtn');
   const clrC = document.getElementById('clearConfirmedBtn');
