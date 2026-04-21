@@ -179,8 +179,20 @@ const DAYS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sába
 const DSHT  = ['D','L','M','X','J','V','S'];
 const MONS  = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
 
-// Slots disponibles por defecto (horas de trabajo)
-const DEFAULT_SLOTS = ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+// Slots según día: L-J 08:00-18:00, V 08:00-13:00, S-D no disponible
+const ALL_SLOTS_LJ = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30'];
+const ALL_SLOTS_V  = ['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30'];
+
+function getSlotsForDate(ds) {
+  const [y,m,d] = ds.split('-').map(Number);
+  const dow = new Date(y,m-1,d).getDay(); // 0=Dom,1=Lun,...,5=Vie,6=Sáb
+  if(dow === 0 || dow === 6) return []; // fin de semana
+  if(dow === 5) return ALL_SLOTS_V;     // viernes hasta 13:00
+  return ALL_SLOTS_LJ;                  // lunes a jueves
+}
+
+// Mantenemos DEFAULT_SLOTS como alias para compatibilidad con loadTaken
+const DEFAULT_SLOTS = ALL_SLOTS_LJ;
 
 let calMon = new Date();
 let selectedDate = null;
@@ -238,13 +250,16 @@ function renderCal() {
   for(let d=1;d<=last.getDate();d++){
     const ds=`${y}-${p2(m+1)}-${p2(d)}`;
     const dt=new Date(y,m,d);
-    const isWeekend=dt.getDay()===0||dt.getDay()===6;
+    const dow=dt.getDay();
+    const isWeekend=dow===0||dow===6;
     const isPast=ds<today;
     const isToday=ds===today;
     const isSel=ds===selectedDate;
-    const isBusy=(takenSlots[ds]||[]).length>=DEFAULT_SLOTS.length;
-    const cls=['cal-day',isPast||isWeekend?'past':'',isToday?'today':'',isSel?'selected':'',isBusy&&!isPast&&!isWeekend?'busy':''].filter(Boolean).join(' ');
-    h+=`<div class="${cls}" onclick="${isPast||isWeekend?'':`pickDate('${ds}')`}">${d}</div>`;
+    const slots=getSlotsForDate(ds);
+    const isBusy=slots.length>0&&(takenSlots[ds]||[]).length>=slots.length;
+    const isDisabled=isPast||isWeekend;
+    const cls=['cal-day',isDisabled?'past':'',isToday?'today':'',isSel?'selected':'',isBusy&&!isDisabled?'busy':''].filter(Boolean).join(' ');
+    h+=`<div class="${cls}" onclick="${isDisabled?'':`pickDate('${ds}')`}" title="${isWeekend?'No disponible fin de semana':''}">${d}</div>`;
   }
   const tot=sd+last.getDate(),rem=tot%7===0?0:7-tot%7;
   for(let i=1;i<=rem;i++)h+=`<div class="cal-day oth">${i}</div>`;
@@ -264,10 +279,16 @@ function renderSlots(){
   const taken=takenSlots[selectedDate]||[];
   const today=todayStr();
   const nowMins=selectedDate===today?t2m(`${p2(new Date().getHours())}:${p2(new Date().getMinutes())}`)+30:0;
+  const daySlots=getSlotsForDate(selectedDate);
 
   document.getElementById('slotsTitle').textContent=`Horas disponibles · ${fmtDate(selectedDate)}`;
 
-  const available=DEFAULT_SLOTS.filter(s=>t2m(s)>nowMins);
+  if(!daySlots.length){
+    document.getElementById('slotsGrid').innerHTML='<div class="slots-empty">No hay disponibilidad este día.</div>';
+    return;
+  }
+
+  const available=daySlots.filter(s=>t2m(s)>nowMins);
   if(!available.length){document.getElementById('slotsGrid').innerHTML='<div class="slots-empty">Sin huecos disponibles para este día.</div>';return;}
 
   let h='<div class="slots-grid">';
