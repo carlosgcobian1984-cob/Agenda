@@ -372,7 +372,13 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 
       <!-- Solicitudes desplegable -->
       <div id="mobileBookingsPanel" style="display:none;border-bottom:1px solid var(--border);">
-        <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto;">
+        <!-- Tabs móvil -->
+        <div style="display:flex;border-bottom:1px solid var(--border);">
+          <button onclick="switchBookTab('pending')" id="mbTabPend" style="flex:1;padding:7px 4px;background:var(--accent2);color:var(--bg);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border-right:1px solid var(--border);">PENDIENTES</button>
+          <button onclick="switchBookTab('done')" id="mbTabDone" style="flex:1;padding:7px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;border-right:1px solid var(--border);">REALIZADAS</button>
+          <button onclick="switchBookTab('history')" id="mbTabHist" style="flex:1;padding:7px 4px;background:var(--surface2);color:var(--muted);border:none;font-size:9px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;">HISTORIAL</button>
+        </div>
+        <div id="bookingsListMobile" style="padding:8px 14px;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;">
           <div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">Sin solicitudes pendientes</div>
         </div>
       </div>
@@ -598,7 +604,11 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
 <div class="modal-overlay" id="addTaskSimpleModal">
   <div class="modal" style="padding:20px 16px;">
     <div class="mtitle">NUEVA TAREA</div>
-    <div class="mfield"><label class="mlabel">¿Qué tienes pendiente? *</label><input class="minp" id="atsText" type="text" placeholder="Describe la tarea..."></div>
+    <div class="mfield"><label class="mlabel">Descripción *</label><input class="minp" id="atsText" type="text" placeholder="¿Qué tienes pendiente?"></div>
+    <div class="mfield"><label class="mlabel">Fecha <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input class="minp" id="atsDate" type="date"></div>
+    <div class="mfield"><label class="mlabel">Hora <span style="color:var(--muted);font-weight:400">(opcional)</span></label>
+      <div class="mtime-row"><input class="minp" id="atsStart" type="time"><span>→</span><input class="minp" id="atsEnd" type="time"></div>
+    </div>
     <div class="mfield"><label class="mlabel">Categoría</label>
       <select class="msel" id="atsCat">
         <option value="work">💼 Trabajo</option>
@@ -1060,6 +1070,9 @@ function saveAddBlockSimple(){
 function openAddTaskSimple(){
   closeAddTypeModal();
   document.getElementById('atsText').value='';
+  document.getElementById('atsDate').value='';
+  document.getElementById('atsStart').value='';
+  document.getElementById('atsEnd').value='';
   document.getElementById('atsCat').value='work';
   document.getElementById('addTaskSimpleModal').classList.add('open');
   setTimeout(()=>document.getElementById('atsText').focus(),200);
@@ -1071,14 +1084,15 @@ function saveAddTaskSimple(){
   tasks.push({
     id:tId++, text,
     category:document.getElementById('atsCat').value,
-    date:'', timeStart:'', timeEnd:'',
+    date:document.getElementById('atsDate').value||'',
+    timeStart:document.getElementById('atsStart').value||'',
+    timeEnd:document.getElementById('atsEnd').value||'',
     done:false
   });
   closeAddTaskSimple();
   save();
   renderTasks();
-  // Ir al tab de tareas para que la vea
-  const taskBtn = document.querySelector('.tab-btn:not(.active)');
+  // Ir al tab de tareas
   document.querySelectorAll('.tab-content').forEach(e=>e.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(e=>e.classList.remove('active'));
   document.getElementById('tab-tasks').classList.add('active');
@@ -1200,16 +1214,20 @@ async function loadBriefing(){
 let bookTab = 'pending';
 function switchBookTab(tab) {
   bookTab = tab;
-  const tabs = {
-    pending: document.getElementById('bTabPend'),
-    done:    document.getElementById('bTabDone'),
-    history: document.getElementById('bTabHist')
-  };
-  const colors = { pending:'var(--accent2)', done:'#4caf50', history:'var(--accent3)' };
-  Object.entries(tabs).forEach(([k,el])=>{
-    if(!el) return;
-    el.style.background = k===tab ? colors[k] : 'var(--surface2)';
+  const tabColors = { pending:'var(--accent2)', done:'#4caf50', history:'var(--accent3)' };
+  // Desktop tabs
+  const dTabs = { pending:'bTabPend', done:'bTabDone', history:'bTabHist' };
+  Object.entries(dTabs).forEach(([k,id])=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.style.background = k===tab ? tabColors[k] : 'var(--surface2)';
     el.style.color = k===tab ? 'var(--bg)' : 'var(--muted)';
+  });
+  // Mobile tabs
+  const mTabs = { pending:'mbTabPend', done:'mbTabDone', history:'mbTabHist' };
+  Object.entries(mTabs).forEach(([k,id])=>{
+    const el=document.getElementById(id); if(!el)return;
+    el.style.background = k===tab ? tabColors[k] : 'var(--surface2)';
+    el.style.color = k===tab ? (k==='done'?'var(--bg)':'var(--bg)') : 'var(--muted)';
   });
   const clrR = document.getElementById('clearRejectedBtn');
   const clrC = document.getElementById('clearConfirmedBtn');
