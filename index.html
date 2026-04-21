@@ -892,37 +892,60 @@ function setMeetStatus(id, status){
   save(); renderView();
 
   if(status === 'done'){
-    showToast('✅ Reunión marcada como realizada','ok');
-    // Marcar booking como completed en Supabase
+    showToast('✅ Marcada como realizada','ok');
+    // Primero buscar si existe un booking en Supabase
     const name = b.title.replace('🤝 ','').trim();
-    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=in.(confirmed,pending)&select=id&limit=1`,{
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&select=id,status&limit=1`,{
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
     }).then(r=>r.json()).then(data=>{
       if(data[0]){
+        // Existe booking — actualizar a completed
         fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
           method:'PATCH',
           headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
           body:JSON.stringify({status:'completed'})
         }).then(()=>loadBookings());
+      } else {
+        // No existe booking — crear uno nuevo como completed
+        fetch(`${SB_URL}/rest/v1/bookings`,{
+          method:'POST',
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({
+            name: b.title,
+            date: b.date,
+            time_start: b.time,
+            time_end: b.timeEnd||null,
+            reason: b.note||'Reunión creada manualmente',
+            email: null,
+            status: 'completed'
+          })
+        }).then(()=>loadBookings());
       }
     }).catch(()=>{});
+
   } else if(status === null){
     showToast('Reunión desmarcada','sync');
-    // Revertir a confirmed en Supabase si existe
     const name = b.title.replace('🤝 ','').trim();
     fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&status=eq.completed&select=id&limit=1`,{
       headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
     }).then(r=>r.json()).then(data=>{
       if(data[0]){
-        fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
-          method:'PATCH',
-          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-          body:JSON.stringify({status:'confirmed'})
-        }).then(()=>loadBookings());
+        // Si vino de booking original, revertir a confirmed; si era manual, borrar
+        const wasManual = data[0].email === null;
+        if(wasManual){
+          fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
+            method:'DELETE',
+            headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Prefer':'return=minimal'}
+          }).then(()=>loadBookings());
+        } else {
+          fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
+            method:'PATCH',
+            headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+            body:JSON.stringify({status:'confirmed'})
+          }).then(()=>loadBookings());
+        }
       }
     }).catch(()=>{});
-  } else {
-    showToast('✕ Reunión no realizada','err');
   }
 }
 function removeB(id){blocks=blocks.filter(x=>x.id!==id);save();renderView();renderCal();}
