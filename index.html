@@ -1220,7 +1220,7 @@ function switchBookTab(tab) {
   const dm = document.getElementById('mbTabDone');
   if(pm){ pm.style.background = isPend ? 'rgba(255,107,26,.2)' : 'var(--surface2)'; pm.style.color = isPend ? 'var(--accent2)' : 'var(--muted)'; }
   if(dm){ dm.style.background = !isPend ? 'rgba(76,175,80,.2)' : 'var(--surface2)'; dm.style.color = !isPend ? '#4caf50' : 'var(--muted)'; }
-  // Show/hide delete button
+  // Delete button visible in REALIZADAS tab
   const clrD = document.getElementById('clearDoneBtn');
   if(clrD) clrD.style.display = !isPend ? 'inline-block' : 'none';
   loadBookings();
@@ -1297,9 +1297,12 @@ async function loadBookings() {
   try {
     const isPending = bookTab === 'pending';
     const isDone = bookTab === 'done';
-    const filter = isPending ? 'status=eq.pending' : isDone ? 'status=eq.completed' : 'status=in.(confirmed,rejected)';
-    const order = isPending || isDone ? 'date.asc,time_start.asc' : 'date.desc,time_start.desc';
-    const r = await fetch(`${SB_URL}/rest/v1/bookings?${filter}&select=*&order=${order}&limit=30`, {
+    // PENDIENTES = solicitudes sin confirmar + confirmadas por venir
+    // REALIZADAS = completadas automáticamente
+    const filter = isPending
+      ? 'status=in.(pending,confirmed)'
+      : 'status=eq.completed';
+    const r = await fetch(`${SB_URL}/rest/v1/bookings?${filter}&select=*&order=date.asc,time_start.asc&limit=50`, {
       headers: {'apikey': SB_KEY, 'Authorization': `Bearer ${SB_KEY}`}
     });
     const data = await r.json();
@@ -1312,35 +1315,40 @@ async function loadBookings() {
 
     if(panel) panel.style.display = 'block';
 
+    // Badge shows pending (unconfirmed) count
+    const pendingCount = isPending ? data.filter(b=>b.status==='pending').length : 0;
     if(isPending) {
-      if(badge) badge.textContent = data.length;
-      if(badgeM){ badgeM.style.display = data.length ? 'inline' : 'none'; badgeM.textContent = data.length; }
-      if(bookBtn) bookBtn.style.color = data.length ? 'var(--accent2)' : '';
+      if(badge) badge.textContent = pendingCount;
+      if(badgeM){ badgeM.style.display = pendingCount ? 'inline' : 'none'; badgeM.textContent = pendingCount; }
+      if(bookBtn) bookBtn.style.color = pendingCount ? 'var(--accent2)' : '';
     }
 
-    const emptyMsg = isPending ? 'Sin solicitudes pendientes' : isDone ? 'Sin reuniones realizadas aún' : 'Sin historial';
+    const emptyMsg = isPending ? 'Sin reuniones agendadas' : 'Sin reuniones realizadas aún';
 
     const cardsHtml = !data.length
       ? `<div style="font-size:11px;color:var(--muted);text-align:center;padding:12px 0;">${emptyMsg}</div>`
       : data.map(b => {
-          const statusColor = b.status==='completed' ? '#5b9cf6' : b.status==='confirmed' ? '#4caf50' : b.status==='rejected' ? '#ff6b6b' : 'var(--accent2)';
-          const statusLabel = b.status==='completed' ? '✅ Realizada' : b.status==='confirmed' ? '✓ Confirmada' : b.status==='rejected' ? '✕ Rechazada' : '⏳ Pendiente';
-          const borderColor = b.status==='completed' ? 'rgba(91,156,246,.3)' : b.status==='pending' ? 'rgba(255,107,53,.3)' : b.status==='confirmed' ? 'rgba(76,175,80,.25)' : 'rgba(255,68,68,.2)';
+          const isConfirmed = b.status==='confirmed';
+          const isPendingCard = b.status==='pending';
+          const statusColor = isConfirmed ? '#4caf50' : isPendingCard ? 'var(--accent2)' : '#5b9cf6';
+          const statusLabel = isConfirmed ? '✓ Agendada' : isPendingCard ? '⏳ Sin confirmar' : '✅ Realizada';
+          const borderColor = isConfirmed ? 'rgba(76,175,80,.25)' : isPendingCard ? 'rgba(255,107,53,.3)' : 'rgba(91,156,246,.25)';
           const swipeId = `sw-b-${b.id}`;
           const inner = `<div style="background:var(--surface2);border:1px solid ${borderColor};border-radius:8px;padding:8px 10px;">
             <div style="flex:1;min-width:0;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
                 <div style="font-size:11px;font-weight:600;color:var(--text);">${b.name}</div>
-                ${!isPending?`<span style="font-size:8px;color:${statusColor};font-weight:700;">${statusLabel}</span>`:''}
+                <span style="font-size:8px;color:${statusColor};font-weight:700;">${statusLabel}</span>
               </div>
               <div style="font-size:10px;color:var(--muted);margin-top:1px;font-family:'DM Mono',monospace;">${b.date} · ${b.time_start}${b.time_end?' – '+b.time_end:''}</div>
               ${b.reason?`<div style="font-size:10px;color:var(--text2);margin-top:3px;line-height:1.4;">${b.reason.slice(0,80)}${b.reason.length>80?'...':''}</div>`:''}
               ${b.email?`<div style="font-size:9px;color:var(--muted);margin-top:2px;">📧 ${b.email}</div>`:''}
             </div>
-            ${isPending?`<div style="display:flex;gap:5px;margin-top:7px;">
+            ${isPendingCard?`<div style="display:flex;gap:5px;margin-top:7px;">
               <button onclick="confirmBooking(${b.id},'${b.name}','${b.date}','${b.time_start}','${b.time_end||''}')" style="flex:1;background:rgba(76,175,80,.15);border:1px solid rgba(76,175,80,.4);border-radius:5px;color:#4caf50;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✓ Confirmar</button>
               <button onclick="rejectBooking(${b.id})" style="flex:1;background:rgba(255,68,68,.1);border:1px solid rgba(255,68,68,.3);border-radius:5px;color:#ff6b6b;font-size:10px;font-weight:700;padding:5px;cursor:pointer;font-family:'DM Sans',sans-serif;">✕ Rechazar</button>
-            </div>`:''}
+            </div>`:''
+            }
           </div>`;
           return `<div class="swipe-wrap" id="${swipeId}" style="border-radius:8px;">
             <div class="swipe-delete-bg" style="border-radius:0 8px 8px 0;">🗑</div>
@@ -1349,7 +1357,7 @@ async function loadBookings() {
         }).join('');
 
     if(list) list.innerHTML = cardsHtml;
-    if(listM && isPending) listM.innerHTML = cardsHtml;
+    if(listM) listM.innerHTML = cardsHtml;
   } catch(e) {}
 }
 
