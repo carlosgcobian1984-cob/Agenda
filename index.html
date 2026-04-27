@@ -525,8 +525,8 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
     </div>
     <div class="mfield"><label class="mlabel">Categoría</label>
       <select class="msel" id="eCat">
-        <option value="work">💼 Trabajo</option>
         <option value="meet">🤝 Reunión</option>
+        <option value="work">💼 Trabajo</option>
         <option value="sport">⚡ Deporte</option>
         <option value="food">🍽 Comida</option>
         <option value="personal">🎯 Personal</option>
@@ -541,6 +541,15 @@ main{display:grid;grid-template-columns:1fr 295px;flex:1;overflow:hidden;}
         <div class="ropt" data-v="weekly" onclick="selRecur(this)">Cada semana</div>
         <div class="ropt" data-v="weekdays" onclick="selRecur(this)">L–V</div>
         <div class="ropt" data-v="monthly" onclick="selRecur(this)">Mensual</div>
+      </div>
+    </div>
+    <!-- Email contacto + notificación -->
+    <div class="mfield" id="eNotifyField" style="display:none;">
+      <label class="mlabel">Email del contacto</label>
+      <input class="minp" id="eEmail" type="email" placeholder="email@contacto.com">
+      <div style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;">
+        <input type="checkbox" id="eNotify" style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer;">
+        <label for="eNotify" style="font-size:12px;color:var(--text2);cursor:pointer;">Notificar al contacto sobre los cambios</label>
       </div>
     </div>
     <div class="mfooter">
@@ -1068,9 +1077,31 @@ function openEdit(id){
   document.getElementById('eLink').value=b.link||'';
   document.getElementById('eNote').value=b.note||'';
   document.querySelectorAll('.ropt').forEach(o=>o.classList.toggle('sel',o.dataset.v===(b.recur||'none')));
+
+  // Mostrar campo email solo para reuniones
+  const notifyField = document.getElementById('eNotifyField');
+  const emailInp = document.getElementById('eEmail');
+  const notifyChk = document.getElementById('eNotify');
+  if(b.category === 'meet' || b.category === 'work'){
+    notifyField.style.display = 'block';
+    emailInp.value = b.contactEmail || '';
+    notifyChk.checked = false;
+    // Intentar rellenar email desde booking
+    const name = b.title.replace('🤝 ','').trim();
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&date=eq.${b.date}&time_start=eq.${b.time}&select=email&limit=1`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+    }).then(r=>r.json()).then(data=>{
+      if(data[0]?.email) emailInp.value = data[0].email;
+    }).catch(()=>{});
+  } else {
+    notifyField.style.display = 'none';
+  }
+
   document.getElementById('editModal').classList.add('open');
 }
 function closeModal(){document.getElementById('editModal').classList.remove('open');editingId=null;}
+
+// ── SAVE EDIT ────────────────────────────────
 
 // ── ADD MODALES SIMPLES (móvil) ───────────────
 function openAddTypeModal(){document.getElementById('addTypeModal').classList.add('open');}
@@ -1146,7 +1177,39 @@ function saveEdit(){
   b.link=document.getElementById('eLink').value.trim();
   b.note=document.getElementById('eNote').value.trim();
   b.recur=document.querySelector('.ropt.sel')?.dataset.v||'none';
+
+  // Guardar email del contacto en el bloque
+  const emailInp = document.getElementById('eEmail');
+  const notifyChk = document.getElementById('eNotify');
+  if(emailInp && emailInp.value.trim()) b.contactEmail = emailInp.value.trim();
+
   viewDate=b.date;closeModal();save();renderView();renderCal();
+
+  // Notificar al contacto si está marcado
+  if(notifyChk && notifyChk.checked && emailInp && emailInp.value.trim()){
+    // Actualizar booking en Supabase y disparar webhook de modificación
+    const name = b.title.replace('🤝 ','').trim();
+    fetch(`${SB_URL}/rest/v1/bookings?name=eq.${encodeURIComponent(name)}&select=id&limit=1`,{
+      headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`}
+    }).then(r=>r.json()).then(data=>{
+      if(data[0]){
+        fetch(`${SB_URL}/rest/v1/bookings?id=eq.${data[0].id}`,{
+          method:'PATCH',
+          headers:{'apikey':SB_KEY,'Authorization':`Bearer ${SB_KEY}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({
+            date: b.date,
+            time_start: b.time,
+            time_end: b.timeEnd||null,
+            email: emailInp.value.trim(),
+            status: 'confirmed'
+          })
+        }).then(()=>showToast('📧 Contacto notificado','ok'));
+      }
+    }).catch(()=>{});
+    showToast('📧 Notificando al contacto...','sync');
+  } else {
+    showToast('✓ Cambios guardados','ok');
+  }
 }
 document.getElementById('editModal').addEventListener('click',e=>{if(e.target===document.getElementById('editModal'))closeModal();});
 
